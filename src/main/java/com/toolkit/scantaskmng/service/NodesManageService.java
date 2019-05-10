@@ -19,13 +19,11 @@ public class NodesManageService {
     private final ResponseHelper responseHelper;
     private final TasksMapper tasksMapper;
     private final PoliciesMapper policiesMapper;
-    private final ExecutePolicyService executePolicyService;
 
-    public NodesManageService(ResponseHelper responseHelper, TasksMapper tasksMapper, PoliciesMapper policiesMapper, ExecutePolicyService executePolicyService) {
+    public NodesManageService(ResponseHelper responseHelper, TasksMapper tasksMapper, PoliciesMapper policiesMapper) {
         this.responseHelper = responseHelper;
         this.tasksMapper = tasksMapper;
         this.policiesMapper = policiesMapper;
-        this.executePolicyService = executePolicyService;
     }
 
     public ResponseBean runTask(String taskUuid) {
@@ -54,12 +52,18 @@ public class NodesManageService {
         }
 
         // 执行策略
-        ErrorCodeEnum errorCode = executePolicyService.batchExecutePolicy(taskUuid, policyArray);
-        if (errorCode != ErrorCodeEnum.ERROR_OK) {
-            return responseHelper.error(errorCode, policyArray);
-        } else {
-            return responseHelper.success(policyArray);
-        }
+        ExecutePolicyThread execThread = new ExecutePolicyThread();
+        execThread.setParams(taskUuid, policyArray);
+        Thread thread = new Thread(execThread);
+        thread.start();
+//        ErrorCodeEnum errorCode = executePolicyThread.batchExecutePolicy(taskUuid, policyArray);
+//        if (errorCode != ErrorCodeEnum.ERROR_OK) {
+//            return responseHelper.error(errorCode, policyArray);
+//        } else {
+//            return responseHelper.success(policyArray);
+//        }
+
+        return responseHelper.success(policyArray);
 
     }
 }

@@ -4,7 +4,7 @@ public enum PolicyRunModeEnum {
 //    1：python脚本；
 //    2：linux shell脚本；
 //    3：windows批处理文件；
-//    4：命令行；
+//    4：命令行；（因涉及到结果解析的复杂，仅用于测试，实际不支持）
 //    5：内置功能模块；
 //    99：未知模式。
     PYTHON_SCRIPTS(1),
