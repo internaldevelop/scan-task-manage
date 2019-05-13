@@ -1,6 +1,7 @@
 package com.toolkit.scantaskmng.service;
 
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.toolkit.scantaskmng.bean.po.PolicyPo;
 import com.toolkit.scantaskmng.bean.po.TaskExecuteResultsPo;
 import com.toolkit.scantaskmng.dao.mybatis.TaskExecuteResultsMapper;
@@ -77,16 +78,23 @@ public class ExecutePolicyThread implements Runnable{
         return resultUuid;
     }
 
-    private ErrorCodeEnum saveResult(String resultUuid, RiskLevelEnum riskLevel, String riskDesc, String result) {
+    private ErrorCodeEnum saveResult(String resultUuid, String results) {
 //        MyFileUtils.save(result,"temp.txt", false);
         TaskExecuteResultsPo resultPo = new TaskExecuteResultsPo();
 
+        JSONObject jsonResult = JSONObject.parseObject(results);
+        int riskLevel = jsonResult.getIntValue("risk_level");
+        String riskDesc = jsonResult.getString("risk_desc");
+        String solution = jsonResult.getString("solution");
+        String solution2 = jsonResult.getString("solution2");
+
         resultPo.setUuid(resultUuid);
-        resultPo.setRisk_flag(riskLevel.getLevel());
+        resultPo.setRisk_level(riskLevel);
         resultPo.setRisk_desc(riskDesc);
+        resultPo.setSolutions(solution);
         resultPo.setProcess_flag(RunStatusEnum.COMPLETE.getStatus());
         resultPo.setEnd_time(MyUtils.getCurrentSystemTimestamp());
-        resultPo.setResults(result);
+        resultPo.setResults(results);
         int rv = taskExecuteResultsMapper.updateExecResult(resultPo);
         if (rv < 1)
             return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
@@ -136,7 +144,7 @@ public class ExecutePolicyThread implements Runnable{
 
             int exitVal = proc.waitFor();
             System.out.println("Exited with error code " + exitVal);
-            if (saveResult(resultUuid, RiskLevelEnum.RISK_L1, "Risk Level-1", results) != ErrorCodeEnum.ERROR_OK)
+            if (saveResult(resultUuid, results) != ErrorCodeEnum.ERROR_OK)
                 return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
         } catch (IOException e) {
             e.printStackTrace();
@@ -162,7 +170,7 @@ public class ExecutePolicyThread implements Runnable{
 
             int exitVal = proc.waitFor();
             System.out.println("Exited with error code " + exitVal);
-            if (saveResult(resultUuid, RiskLevelEnum.NO_RISK, "No Risk", results) != ErrorCodeEnum.ERROR_OK)
+            if (saveResult(resultUuid, results) != ErrorCodeEnum.ERROR_OK)
                 return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
         } catch (IOException e) {
             e.printStackTrace();
