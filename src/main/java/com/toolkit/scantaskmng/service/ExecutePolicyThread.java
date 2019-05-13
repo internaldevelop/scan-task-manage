@@ -125,7 +125,8 @@ public class ExecutePolicyThread implements Runnable{
         String[] args1 = new String[]{"python","tempexec.py"};
         try {
             Process proc = Runtime.getRuntime().exec(args1);
-            BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            // 中文版 Windows 运行时环境的输出默认是 GBK 编码
+            BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
             String line;
             String results = "";
             while ((line = input.readLine()) != null) {

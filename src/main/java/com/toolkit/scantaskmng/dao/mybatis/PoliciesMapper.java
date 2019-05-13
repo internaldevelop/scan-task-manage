@@ -33,7 +33,7 @@ public interface PoliciesMapper {
      * 获得所有有效的策略记录
      * @return PolicyProps 的集合
      */
-    @Select("SELECT * FROM policies p WHERE p.status>=0 ")
+    @Select("SELECT * FROM policies p WHERE p.status>0 ")
     List<PolicyPo> allPolicies();
 
     /**
@@ -41,7 +41,7 @@ public interface PoliciesMapper {
      * @param policyUuid 指定的策略 UUID
      * @return PolicyProps 策略记录的全部数据
      */
-    @Select("SELECT * FROM policies p WHERE p.uuid=#{uuid} AND p.status>=0 ")
+    @Select("SELECT * FROM policies p WHERE p.uuid=#{uuid} AND p.status>0 ")
     PolicyPo getPolicyByUuid(@Param("uuid") String policyUuid);
 
     /**
@@ -49,7 +49,7 @@ public interface PoliciesMapper {
      * @param policyGroupUuid
      * @return
      */
-    @Select("SELECT * FROM policies p WHERE p.group_uuid=#{group_uuid} AND p.status>=0 ")
+    @Select("SELECT * FROM policies p WHERE p.group_uuid=#{group_uuid} AND p.status>0 ")
     List<PolicyPo> getPoliciesByGroup(@Param("group_uuid") String policyGroupUuid);
 
     /**
@@ -65,7 +65,7 @@ public interface PoliciesMapper {
             "consume_time=#{consume_time}, asset_uuid=#{asset_uuid}, \n" +
             "create_user_uuid=#{create_user_uuid} \n" +
             "WHERE \n" +
-            "p.uuid=#{uuid} AND p.status>=0  ")
+            "p.uuid=#{uuid} AND p.status>0  ")
     int updatePolicy(PolicyPo policy);
 
     /**
