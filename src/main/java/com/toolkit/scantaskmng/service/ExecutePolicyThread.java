@@ -86,7 +86,8 @@ public class ExecutePolicyThread implements Runnable{
         int riskLevel = jsonResult.getIntValue("risk_level");
         String riskDesc = jsonResult.getString("risk_desc");
         String solution = jsonResult.getString("solution");
-        String solution2 = jsonResult.getString("solution2");
+        String info = jsonResult.getString("info");
+        if (info == null) info = "";
 
         resultPo.setUuid(resultUuid);
         resultPo.setRisk_level(riskLevel);
@@ -94,7 +95,7 @@ public class ExecutePolicyThread implements Runnable{
         resultPo.setSolutions(solution);
         resultPo.setProcess_flag(RunStatusEnum.COMPLETE.getStatus());
         resultPo.setEnd_time(MyUtils.getCurrentSystemTimestamp());
-        resultPo.setResults(results);
+        resultPo.setResults(info);
         int rv = taskExecuteResultsMapper.updateExecResult(resultPo);
         if (rv < 1)
             return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
