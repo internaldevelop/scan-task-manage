@@ -2,17 +2,15 @@ package com.toolkit.scantaskmng.service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.toolkit.scantaskmng.bean.dto.TaskRunStatusDto;
 import com.toolkit.scantaskmng.bean.po.PolicyPo;
 import com.toolkit.scantaskmng.bean.po.TaskExecuteResultsPo;
 import com.toolkit.scantaskmng.dao.mybatis.TaskExecuteResultsMapper;
-import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
-import com.toolkit.scantaskmng.global.enumeration.PolicyRunModeEnum;
-import com.toolkit.scantaskmng.global.enumeration.RiskLevelEnum;
-import com.toolkit.scantaskmng.global.enumeration.RunStatusEnum;
+import com.toolkit.scantaskmng.global.enumeration.*;
 import com.toolkit.scantaskmng.global.utils.MyFileUtils;
 import com.toolkit.scantaskmng.global.utils.MyUtils;
 import com.toolkit.scantaskmng.global.utils.SpringBeanUtil;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,8 +23,11 @@ public class ExecutePolicyThread implements Runnable{
 
     private TaskExecuteResultsMapper taskExecuteResultsMapper = null;
 
+    private TaskRunStatusService taskRunStatusService;
+
     public ExecutePolicyThread() {
         taskExecuteResultsMapper = SpringBeanUtil.getBean(TaskExecuteResultsMapper.class);
+        taskRunStatusService = SpringBeanUtil.getBean(TaskRunStatusService.class);
 //                ApplicationContext applicationContext;
 //        applicationContext = new AnnotationConfigApplicationContext(com.xiaoleitech.authapi.AuthapiApplication.class);
 //        SystemGlobalParams systemGlobalParams = applicationContext.getBean(SystemGlobalParams.class);
@@ -44,16 +45,45 @@ public class ExecutePolicyThread implements Runnable{
     }
 
     public ErrorCodeEnum batchExecutePolicy(String taskUuid, JSONArray policyArray) {
+        // 设置任务运行状态为运行中
+        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(taskUuid);
+        if (taskRunStatusDto == null)
+            return ErrorCodeEnum.ERROR_TASK_RUN_STATUS_NOT_FOUND;
+        taskRunStatusDto.setRun_status(TaskRunStatusEnum.RUNNING.getStatus());
+        taskRunStatusDto.setDone_jobs_count(0);
+        taskRunStatusDto.setTotal_jobs_count(policyArray.size());
+        int totalTime = 0;
+        for (Iterator iter = policyArray.iterator(); iter.hasNext(); ) {
+            PolicyPo policyPo = (PolicyPo) iter.next();
+            totalTime += policyPo.getConsume_time();
+        }
+        taskRunStatusDto.setRemain_time(totalTime);
+        if (!taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto))
+            return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
+
         // 枚举每个策略
         for (Iterator iter = policyArray.iterator(); iter.hasNext(); ) {
             PolicyPo policyPo = (PolicyPo) iter.next();
-//            PolicyPo policyPo = jsonPolicy.toJavaObject(PolicyPo.class);
 
             // 执行策略，如果执行失败，则中断返回
             if (executePolicy(taskUuid, policyPo) != ErrorCodeEnum.ERROR_OK) {
+                taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
+                taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto);
                 return ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY;
             }
+
+            // 记录一个子任务完成后的任务执行状态
+            taskRunStatusDto.setRemain_time(taskRunStatusDto.getRemain_time() - policyPo.getConsume_time());
+            taskRunStatusDto.setDone_jobs_count(taskRunStatusDto.getDone_jobs_count() + 1);
+            taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto);
         }
+
+        // 记录任务全部完成后的任务执行状态
+        taskRunStatusDto.setDone_jobs_count(taskRunStatusDto.getTotal_jobs_count());
+        taskRunStatusDto.setRemain_time(0);
+        taskRunStatusDto.setRun_status(TaskRunStatusEnum.FINISHED.getStatus());
+        taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto);
+
         return ErrorCodeEnum.ERROR_OK;
     }
 
@@ -70,7 +100,7 @@ public class ExecutePolicyThread implements Runnable{
         java.sql.Timestamp currentTime = MyUtils.getCurrentSystemTimestamp();
         resultPo.setStart_time(currentTime);
         resultPo.setCreate_time(currentTime);
-        resultPo.setProcess_flag(RunStatusEnum.RUNNING.getStatus());
+        resultPo.setProcess_flag(TaskRunStatusEnum.RUNNING.getStatus());
         int rv = taskExecuteResultsMapper.addExecuteRecord(resultPo);
         if (rv < 1)
             return "";
@@ -93,7 +123,7 @@ public class ExecutePolicyThread implements Runnable{
         resultPo.setRisk_level(riskLevel);
         resultPo.setRisk_desc(riskDesc);
         resultPo.setSolutions(solution);
-        resultPo.setProcess_flag(RunStatusEnum.COMPLETE.getStatus());
+        resultPo.setProcess_flag(TaskRunStatusEnum.FINISHED.getStatus());
         resultPo.setEnd_time(MyUtils.getCurrentSystemTimestamp());
         resultPo.setResults(info);
         int rv = taskExecuteResultsMapper.updateExecResult(resultPo);

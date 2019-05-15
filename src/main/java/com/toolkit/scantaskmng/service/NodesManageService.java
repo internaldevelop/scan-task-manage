@@ -2,13 +2,16 @@ package com.toolkit.scantaskmng.service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.toolkit.scantaskmng.bean.dto.TaskRunStatusDto;
 import com.toolkit.scantaskmng.bean.po.PolicyPo;
 import com.toolkit.scantaskmng.bean.po.TaskPo;
 import com.toolkit.scantaskmng.dao.mybatis.PoliciesMapper;
 import com.toolkit.scantaskmng.dao.mybatis.TasksMapper;
 import com.toolkit.scantaskmng.global.bean.ResponseBean;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
+import com.toolkit.scantaskmng.global.enumeration.TaskRunStatusEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
@@ -19,6 +22,8 @@ public class NodesManageService {
     private final ResponseHelper responseHelper;
     private final TasksMapper tasksMapper;
     private final PoliciesMapper policiesMapper;
+    @Autowired
+    private TaskRunStatusService taskRunStatusService;
 
     public NodesManageService(ResponseHelper responseHelper, TasksMapper tasksMapper, PoliciesMapper policiesMapper) {
         this.responseHelper = responseHelper;
@@ -27,6 +32,19 @@ public class NodesManageService {
     }
 
     public ResponseBean runTask(String taskUuid) {
+//        String value = taskRunStatusService.getString("AAAA");
+//        taskRunStatusService.setString("AAAA", "A1111");
+//        value = taskRunStatusService.getString("AAAA");
+
+        // 获取任务执行状态
+        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(taskUuid);
+        if (taskRunStatusDto == null)
+            return responseHelper.error(ErrorCodeEnum.ERROR_TASK_RUN_STATUS_NOT_FOUND);
+
+        // 要求任务运行状态为空闲
+        if (taskRunStatusDto.getRun_status() != TaskRunStatusEnum.IDLE.getStatus())
+            return responseHelper.error(ErrorCodeEnum.ERROR_INCORRECT_TASK_RUN_STATUS);
+
         // 获取指定的任务
         TaskPo taskPo = tasksMapper.getTaskByUuid(taskUuid);
         if (taskPo == null)
