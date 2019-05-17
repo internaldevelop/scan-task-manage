@@ -41,9 +41,9 @@ public class NodesManageService {
         if (taskRunStatusDto == null)
             return responseHelper.error(ErrorCodeEnum.ERROR_TASK_RUN_STATUS_NOT_FOUND);
 
-        // 要求任务运行状态为空闲
-        if (taskRunStatusDto.getRun_status() != TaskRunStatusEnum.IDLE.getStatus())
-            return responseHelper.error(ErrorCodeEnum.ERROR_INCORRECT_TASK_RUN_STATUS);
+        // TODO: 没有必要要求任务运行状态为空闲
+//        if (taskRunStatusDto.getRun_status() != TaskRunStatusEnum.IDLE.getStatus())
+//            return responseHelper.error(ErrorCodeEnum.ERROR_INCORRECT_TASK_RUN_STATUS);
 
         // 获取指定的任务
         TaskPo taskPo = tasksMapper.getTaskByUuid(taskUuid);

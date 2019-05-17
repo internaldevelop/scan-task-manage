@@ -181,8 +181,10 @@ public class ExecutePolicyThread implements Runnable{
             input.close();
 
             // 结果如果为空，则报告执行错误
-            if (results.isEmpty())
+            if (results.isEmpty()) {
+                System.out.println("Execute python results is empty.");
                 return ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY;
+            }
 
             int exitVal = proc.waitFor();
             System.out.println("Exited with error code " + exitVal);
