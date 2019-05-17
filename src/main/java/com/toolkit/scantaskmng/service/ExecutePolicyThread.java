@@ -58,6 +58,8 @@ public class ExecutePolicyThread implements Runnable{
             totalTime += policyPo.getConsume_time();
         }
         taskRunStatusDto.setRemain_time(totalTime);
+        taskRunStatusDto.setTotal_time(totalTime);
+        taskRunStatusDto.setDone_rate(0.0);
         if (!taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto))
             return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
 
@@ -75,12 +77,17 @@ public class ExecutePolicyThread implements Runnable{
             // 记录一个子任务完成后的任务执行状态
             taskRunStatusDto.setRemain_time(taskRunStatusDto.getRemain_time() - policyPo.getConsume_time());
             taskRunStatusDto.setDone_jobs_count(taskRunStatusDto.getDone_jobs_count() + 1);
+            // 百分比取到小数点后一位
+            double doneRate = 1000 * (taskRunStatusDto.getTotal_time() - taskRunStatusDto.getRemain_time()) /
+                    taskRunStatusDto.getTotal_time() / 10.0;
+            taskRunStatusDto.setDone_rate(doneRate);
             taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto);
         }
 
         // 记录任务全部完成后的任务执行状态
         taskRunStatusDto.setDone_jobs_count(taskRunStatusDto.getTotal_jobs_count());
         taskRunStatusDto.setRemain_time(0);
+        taskRunStatusDto.setDone_rate(100);
         taskRunStatusDto.setRun_status(TaskRunStatusEnum.FINISHED.getStatus());
         taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto);
 
@@ -172,6 +179,10 @@ public class ExecutePolicyThread implements Runnable{
                 results += line + "\n";
             }
             input.close();
+
+            // 结果如果为空，则报告执行错误
+            if (results.isEmpty())
+                return ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY;
 
             int exitVal = proc.waitFor();
             System.out.println("Exited with error code " + exitVal);
