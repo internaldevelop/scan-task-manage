@@ -5,46 +5,120 @@ import com.alibaba.fastjson.JSONObject;
 import com.toolkit.scantaskmng.bean.dto.TaskRunStatusDto;
 import com.toolkit.scantaskmng.bean.po.PolicyPo;
 import com.toolkit.scantaskmng.bean.po.TaskExecuteResultsPo;
+import com.toolkit.scantaskmng.bean.po.TaskPo;
+import com.toolkit.scantaskmng.dao.mybatis.PoliciesMapper;
 import com.toolkit.scantaskmng.dao.mybatis.TaskExecuteResultsMapper;
+import com.toolkit.scantaskmng.dao.mybatis.TasksMapper;
 import com.toolkit.scantaskmng.global.enumeration.*;
+import com.toolkit.scantaskmng.global.response.ResponseHelper;
 import com.toolkit.scantaskmng.global.utils.MyFileUtils;
 import com.toolkit.scantaskmng.global.utils.MyUtils;
 import com.toolkit.scantaskmng.global.utils.SpringBeanUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+// 使用 @Component 注解，组件化，以使 batchExecutePolicy 函数在不同线程间同步
+// 避免动态新建 ExecutePolicyThread 对象时，不同对象无法简单用 synchronized 做到同步
+@Component
 public class ExecutePolicyThread implements Runnable{
     private String taskUuid;
     private JSONArray policyArray;
+    protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    private TaskExecuteResultsMapper taskExecuteResultsMapper = null;
-
+    @Autowired
     private TaskRunStatusService taskRunStatusService;
+    @Autowired
+    private TaskExecuteResultsMapper taskExecuteResultsMapper;
+    @Autowired
+    private TasksMapper tasksMapper;
+    @Autowired
+    private PoliciesMapper policiesMapper;
 
     public ExecutePolicyThread() {
-        taskExecuteResultsMapper = SpringBeanUtil.getBean(TaskExecuteResultsMapper.class);
-        taskRunStatusService = SpringBeanUtil.getBean(TaskRunStatusService.class);
-//                ApplicationContext applicationContext;
-//        applicationContext = new AnnotationConfigApplicationContext(com.xiaoleitech.authapi.AuthapiApplication.class);
-//        SystemGlobalParams systemGlobalParams = applicationContext.getBean(SystemGlobalParams.class);
-
-    }
-
-    public void setParams(String taskUuid, JSONArray policyArray) {
-        this.taskUuid = taskUuid;
-        this.policyArray = policyArray;
     }
 
     @Override
     public void run() {
-        batchExecutePolicy(this.taskUuid, this.policyArray);
+        try {
+            // 批处理执行策略
+            batchExecutePolicy();
+        } catch (Exception e) {
+
+        } finally {
+        }
     }
 
-    public ErrorCodeEnum batchExecutePolicy(String taskUuid, JSONArray policyArray) {
+    private ErrorCodeEnum analyzeTask() {
+        String taskUuid = this.taskUuid;
+        // 获取任务执行状态
+        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(taskUuid);
+        if (taskRunStatusDto == null)
+            return ErrorCodeEnum.ERROR_TASK_RUN_STATUS_NOT_FOUND;
+
+        // 获取指定的任务
+        TaskPo taskPo = tasksMapper.getTaskByUuid(taskUuid);
+        if (taskPo == null)
+            return ErrorCodeEnum.ERROR_TASK_NOT_FOUND;
+
+        // 提取策略组
+        JSONArray policyGroups = JSONArray.parseArray(taskPo.getPolicy_groups());
+
+        // 构造策略集合
+        JSONArray policyArray = new JSONArray();
+        for ( Iterator iter = policyGroups.iterator(); iter.hasNext(); ) {
+            JSONObject jsonGroup = (JSONObject)iter.next();
+            String policyGroupUuid = jsonGroup.getString("uuid");
+            List<PolicyPo> policyPoList = policiesMapper.getPoliciesByGroup(policyGroupUuid);
+            if (policyPoList == null || policyPoList.size() == 0) {
+                // 如果找不到该组的策略，继续寻找下一个组
+                continue;
+//                return responseHelper.error(ErrorCodeEnum.ERROR_POLICY_NOT_FOUND, policyGroups);
+            }
+
+            // 找到的策略加到该分组对象中
+            policyArray.addAll(policyPoList);
+        }
+
+        this.policyArray = policyArray;
+
+        return ErrorCodeEnum.ERROR_OK;
+    }
+
+    /**
+     * synchronized 在不同线程间同步本处理，让每个任务顺序执行
+     * 避免 python 脚本执行时运行时环境冲突的问题
+     * @return
+     */
+    synchronized public ErrorCodeEnum batchExecutePolicy() {
+        // 打印线程信息，检查锁的效果
+        Thread selfThread = Thread.currentThread();
+        logger.info("===> 运行策略执行的线程：" + selfThread.getName());
+
+        // 从队列中取任务
+        this.taskUuid = TaskRunQueue.fetch();
+        logger.info("task UUID: " + this.taskUuid);
+        if (this.taskUuid == null) {
+            return ErrorCodeEnum.ERROR_TASK_NOT_FOUND;
+        }
+
+        // 解析任务，包含哪些策略
+        ErrorCodeEnum errorCode = analyzeTask();
+        if (errorCode != ErrorCodeEnum.ERROR_OK)
+            return errorCode;
+
+        String taskUuid = this.taskUuid;
+        JSONArray policyArray = this.policyArray;
+
         // 设置任务运行状态为运行中
         TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(taskUuid);
         if (taskRunStatusDto == null)
@@ -182,12 +256,12 @@ public class ExecutePolicyThread implements Runnable{
 
             // 结果如果为空，则报告执行错误
             if (results.isEmpty()) {
-                System.out.println("Execute python results is empty.");
+                System.out.println("Execute python results is empty. Thread is: " + Thread.currentThread().getName());
                 return ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY;
             }
 
             int exitVal = proc.waitFor();
-            System.out.println("Exited with error code " + exitVal);
+            System.out.println("Exited with error code: " + exitVal + ". Thread is: " + Thread.currentThread().getName());
             if (saveResult(resultUuid, results) != ErrorCodeEnum.ERROR_OK)
                 return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
         } catch (IOException e) {

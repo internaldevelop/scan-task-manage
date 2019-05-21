@@ -19,23 +19,35 @@ import java.util.List;
 
 @Component
 public class NodesManageService {
-    private final ResponseHelper responseHelper;
-    private final TasksMapper tasksMapper;
-    private final PoliciesMapper policiesMapper;
+    @Autowired
+    private ResponseHelper responseHelper;
+    @Autowired
+    private TasksMapper tasksMapper;
+    @Autowired
+    private PoliciesMapper policiesMapper;
     @Autowired
     private TaskRunStatusService taskRunStatusService;
 
-    public NodesManageService(ResponseHelper responseHelper, TasksMapper tasksMapper, PoliciesMapper policiesMapper) {
-        this.responseHelper = responseHelper;
-        this.tasksMapper = tasksMapper;
-        this.policiesMapper = policiesMapper;
+    @Autowired
+    private ExecutePolicyThread execThread;
+
+    public NodesManageService() {
+//        if (this.execThread2 == null)
+//            this.execThread2 = new ExecutePolicyThread();
     }
 
     public ResponseBean runTask(String taskUuid) {
+        // 执行策略
+//        ExecutePolicyThread execThread = new ExecutePolicyThread();
+//        execThread.setParams(taskUuid);
+        TaskRunQueue.add(taskUuid);
+        Thread thread = new Thread(execThread);
+        thread.start();
+
 //        String value = taskRunStatusService.getString("AAAA");
 //        taskRunStatusService.setString("AAAA", "A1111");
 //        value = taskRunStatusService.getString("AAAA");
-
+/*
         // 获取任务执行状态
         TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(taskUuid);
         if (taskRunStatusDto == null)
@@ -69,19 +81,14 @@ public class NodesManageService {
             policyArray.addAll(policyPoList);
         }
 
-        // 执行策略
-        ExecutePolicyThread execThread = new ExecutePolicyThread();
-        execThread.setParams(taskUuid, policyArray);
-        Thread thread = new Thread(execThread);
-        thread.start();
 //        ErrorCodeEnum errorCode = executePolicyThread.batchExecutePolicy(taskUuid, policyArray);
 //        if (errorCode != ErrorCodeEnum.ERROR_OK) {
 //            return responseHelper.error(errorCode, policyArray);
 //        } else {
 //            return responseHelper.success(policyArray);
 //        }
-
-        return responseHelper.success(policyArray);
+*/
+        return responseHelper.success();
 
     }
 }
