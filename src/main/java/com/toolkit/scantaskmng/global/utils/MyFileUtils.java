@@ -11,8 +11,6 @@ public class MyFileUtils {
      * @return
      */
     public static boolean save(String data, String fileName, boolean bOverride) {
-        OutputStream outputStream = null;
-
         // 获取当前路径
         String workingPath = getWorkingPath();
         File currentDir = new File(workingPath);
@@ -21,17 +19,35 @@ public class MyFileUtils {
             currentDir.mkdirs();
         }
 
+        BufferedWriter osw = null;
+        FileOutputStream fos = null;
         String fileFullPath = currentDir.getPath() + File.separator + fileName;
         try {
-            outputStream = new FileOutputStream(fileFullPath, !bOverride);
-            outputStream.write(data.getBytes());
-            outputStream.close();
+            fos = new FileOutputStream(fileFullPath, !bOverride);
+            osw = new BufferedWriter(new OutputStreamWriter(fos, "UTF-8"));
+            osw.write(data);
+            osw.flush();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             return false;
         } catch (IOException e) {
             e.printStackTrace();
             return false;
+        } finally {
+            if (osw != null){
+                try {
+                    osw.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+            if (fos != null){
+                try {
+                    fos.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
         }
         return true;
     }
