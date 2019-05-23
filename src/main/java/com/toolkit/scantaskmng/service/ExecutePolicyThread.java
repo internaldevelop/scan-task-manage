@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.toolkit.scantaskmng.bean.dto.TaskRunStatusDto;
 import com.toolkit.scantaskmng.bean.po.PolicyPo;
+import com.toolkit.scantaskmng.bean.po.TaskExecuteActionPo;
 import com.toolkit.scantaskmng.bean.po.TaskExecuteResultsPo;
 import com.toolkit.scantaskmng.bean.po.TaskPo;
 import com.toolkit.scantaskmng.dao.mybatis.PoliciesMapper;
+import com.toolkit.scantaskmng.dao.mybatis.TaskExecActionsMapper;
 import com.toolkit.scantaskmng.dao.mybatis.TaskExecuteResultsMapper;
 import com.toolkit.scantaskmng.dao.mybatis.TasksMapper;
 import com.toolkit.scantaskmng.global.enumeration.*;
@@ -31,7 +33,9 @@ import java.util.concurrent.locks.ReentrantLock;
 // 避免动态新建 ExecutePolicyThread 对象时，不同对象无法简单用 synchronized 做到同步
 @Component
 public class ExecutePolicyThread implements Runnable{
+    private String projectUuid;
     private String taskUuid;
+    private String executeUuid;
     private JSONArray policyArray;
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -43,6 +47,8 @@ public class ExecutePolicyThread implements Runnable{
     private TasksMapper tasksMapper;
     @Autowired
     private PoliciesMapper policiesMapper;
+    @Autowired
+    private TaskExecActionsMapper execActionsMapper;
 
     public ExecutePolicyThread() {
     }
@@ -94,6 +100,46 @@ public class ExecutePolicyThread implements Runnable{
         return ErrorCodeEnum.ERROR_OK;
     }
 
+    private ErrorCodeEnum createExecuteRecord() {
+        this.executeUuid = MyUtils.generateUuid();
+        TaskExecuteActionPo executeActionPo = new TaskExecuteActionPo();
+        executeActionPo.setUuid(this.executeUuid);
+        executeActionPo.setProject_uuid(this.projectUuid);
+        executeActionPo.setTask_uuid(this.taskUuid);
+        executeActionPo.setStatus(GeneralStatusEnum.VALID.getStatus());
+        executeActionPo.setExec_time(MyUtils.getCurrentSystemTimestamp());
+        int count = execActionsMapper.addTaskExecAction(executeActionPo);
+        if (count == 1)
+            return ErrorCodeEnum.ERROR_OK;
+        else
+            return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
+    }
+
+    private ErrorCodeEnum saveTaskExecuteStartStatus() {
+        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid);
+        if (taskRunStatusDto == null) {
+            // 如果找不到该任务的运行信息，则需新建此任务的运行信息
+            taskRunStatusDto = new TaskRunStatusDto();
+            taskRunStatusDto.setTask_uuid(this.taskUuid);
+        }
+        taskRunStatusDto.setProject_uuid(this.projectUuid);
+        taskRunStatusDto.setRun_status(TaskRunStatusEnum.RUNNING.getStatus());
+        taskRunStatusDto.setDone_jobs_count(0);
+        taskRunStatusDto.setTotal_jobs_count(this.policyArray.size());
+        int totalTime = 0;
+        for (Iterator iter = this.policyArray.iterator(); iter.hasNext(); ) {
+            PolicyPo policyPo = (PolicyPo) iter.next();
+            totalTime += policyPo.getConsume_time();
+        }
+        taskRunStatusDto.setRemain_time(totalTime);
+        taskRunStatusDto.setTotal_time(totalTime);
+        taskRunStatusDto.setDone_rate(0.0);
+        if (!taskRunStatusService.setTaskRunStatus(this.taskUuid, taskRunStatusDto))
+            return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
+
+        return ErrorCodeEnum.ERROR_OK;
+    }
+
     /**
      * synchronized 在不同线程间同步本处理，让每个任务顺序执行
      * 避免 python 脚本执行时运行时环境冲突的问题
@@ -105,46 +151,38 @@ public class ExecutePolicyThread implements Runnable{
         logger.info("===> 运行策略执行的线程：" + selfThread.getName());
 
         // 从队列中取任务
-        this.taskUuid = TaskRunQueue.fetch();
-        logger.info("task UUID: " + this.taskUuid);
-        if (this.taskUuid == null) {
+        JSONObject taskInfo = TaskRunQueue.fetch();
+        if (taskInfo == null) {
             return ErrorCodeEnum.ERROR_TASK_NOT_FOUND;
         }
+        this.projectUuid = taskInfo.getString("project_uuid");
+        this.taskUuid = taskInfo.getString("task_uuid");
+        logger.info("project UUID: " + this.projectUuid + "   task UUID: " + this.taskUuid);
 
         // 解析任务，包含哪些策略
         ErrorCodeEnum errorCode = analyzeTask();
         if (errorCode != ErrorCodeEnum.ERROR_OK)
             return errorCode;
 
-        String taskUuid = this.taskUuid;
-        JSONArray policyArray = this.policyArray;
+        // 创建一条任务的执行记录
+        errorCode = createExecuteRecord();
+        if (errorCode != ErrorCodeEnum.ERROR_OK)
+            return errorCode;
 
         // 设置任务运行状态为运行中
-        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(taskUuid);
-        if (taskRunStatusDto == null)
-            return ErrorCodeEnum.ERROR_TASK_RUN_STATUS_NOT_FOUND;
-        taskRunStatusDto.setRun_status(TaskRunStatusEnum.RUNNING.getStatus());
-        taskRunStatusDto.setDone_jobs_count(0);
-        taskRunStatusDto.setTotal_jobs_count(policyArray.size());
-        int totalTime = 0;
-        for (Iterator iter = policyArray.iterator(); iter.hasNext(); ) {
-            PolicyPo policyPo = (PolicyPo) iter.next();
-            totalTime += policyPo.getConsume_time();
-        }
-        taskRunStatusDto.setRemain_time(totalTime);
-        taskRunStatusDto.setTotal_time(totalTime);
-        taskRunStatusDto.setDone_rate(0.0);
-        if (!taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto))
-            return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
+        errorCode = saveTaskExecuteStartStatus();
+        if (errorCode != ErrorCodeEnum.ERROR_OK)
+            return errorCode;
 
         // 枚举每个策略
-        for (Iterator iter = policyArray.iterator(); iter.hasNext(); ) {
+        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid);
+        for (Iterator iter = this.policyArray.iterator(); iter.hasNext(); ) {
             PolicyPo policyPo = (PolicyPo) iter.next();
 
             // 执行策略，如果执行失败，则中断返回
-            if (executePolicy(taskUuid, policyPo) != ErrorCodeEnum.ERROR_OK) {
+            if (executePolicy(this.taskUuid, policyPo) != ErrorCodeEnum.ERROR_OK) {
                 taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
-                taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto);
+                taskRunStatusService.setTaskRunStatus(this.taskUuid, taskRunStatusDto);
                 return ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY;
             }
 
@@ -155,7 +193,7 @@ public class ExecutePolicyThread implements Runnable{
             double doneRate = 1000 * (taskRunStatusDto.getTotal_time() - taskRunStatusDto.getRemain_time()) /
                     taskRunStatusDto.getTotal_time() / 10.0;
             taskRunStatusDto.setDone_rate(doneRate);
-            taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto);
+            taskRunStatusService.setTaskRunStatus(this.taskUuid, taskRunStatusDto);
         }
 
         // 记录任务全部完成后的任务执行状态
@@ -163,7 +201,7 @@ public class ExecutePolicyThread implements Runnable{
         taskRunStatusDto.setRemain_time(0);
         taskRunStatusDto.setDone_rate(100);
         taskRunStatusDto.setRun_status(TaskRunStatusEnum.FINISHED.getStatus());
-        taskRunStatusService.setTaskRunStatus(taskUuid, taskRunStatusDto);
+        taskRunStatusService.setTaskRunStatus(this.taskUuid, taskRunStatusDto);
 
         return ErrorCodeEnum.ERROR_OK;
     }
@@ -175,6 +213,7 @@ public class ExecutePolicyThread implements Runnable{
         String resultUuid = MyUtils.generateUuid();
         resultPo.setUuid(resultUuid);
 
+        resultPo.setExec_action_uuid(this.executeUuid);
         resultPo.setTask_uuid(taskUuid);
         resultPo.setPolicy_uuid(policyPo.getUuid());
 
@@ -249,7 +288,14 @@ public class ExecutePolicyThread implements Runnable{
             BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
             String line;
             String results = "";
+            boolean bValidInfo = false;
             while ((line = input.readLine()) != null) {
+                // 运行进程输出信息中包含了命令自身的输出，需略过
+                if (!bValidInfo && line.length() > 8 && line.substring(0, 8).equals("{'info':"))
+                    bValidInfo = true;
+                if (!bValidInfo)
+                    continue;
+
                 results += line + "\n";
             }
             input.close();
