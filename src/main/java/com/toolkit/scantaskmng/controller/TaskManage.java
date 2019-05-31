@@ -8,11 +8,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @CrossOrigin(origins = "*",maxAge = 3600)
 @RequestMapping(value = "/nodes/manage")
-public class TestManage {
+public class TaskManage {
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
     private final NodesManageService nodesManageService;
 
-    public TestManage(NodesManageService nodesManageService) {
+    public TaskManage(NodesManageService nodesManageService) {
         this.nodesManageService = nodesManageService;
     }
 

@@ -16,6 +16,7 @@ import com.toolkit.scantaskmng.global.response.ResponseHelper;
 import com.toolkit.scantaskmng.global.utils.MyFileUtils;
 import com.toolkit.scantaskmng.global.utils.MyUtils;
 import com.toolkit.scantaskmng.global.utils.SpringBeanUtil;
+import com.toolkit.scantaskmng.global.utils.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +60,7 @@ public class ExecutePolicyThread implements Runnable{
             // 批处理执行策略
             batchExecutePolicy();
         } catch (Exception e) {
-
+            logger.error(e.getMessage());
         } finally {
         }
     }
@@ -81,8 +82,14 @@ public class ExecutePolicyThread implements Runnable{
 
         // 构造策略集合
         JSONArray policyArray = new JSONArray();
+        boolean isWindows = SystemUtils.isWindows();
         for ( Iterator iter = policyGroups.iterator(); iter.hasNext(); ) {
             JSONObject jsonGroup = (JSONObject)iter.next();
+            // 策略组需和操作系统匹配，本版本暂时用策略组的base_line来代表OS类型
+            if ((jsonGroup.getIntValue("baseline") == BaseLineEnum.WINDOWS.getType() && !isWindows) ||
+                    (jsonGroup.getIntValue("baseline") == BaseLineEnum.LINUX.getType() && isWindows) )
+                continue;
+
             String policyGroupUuid = jsonGroup.getString("uuid");
             List<PolicyPo> policyPoList = policiesMapper.getPoliciesByGroup(policyGroupUuid);
             if (policyPoList == null || policyPoList.size() == 0) {

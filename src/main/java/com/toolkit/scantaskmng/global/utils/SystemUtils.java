@@ -3,6 +3,7 @@ package com.toolkit.scantaskmng.global.utils;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
+import java.util.Properties;
 
 public class SystemUtils {
     public static InetAddress getLocalHostLANAddress() {
@@ -35,5 +36,25 @@ public class SystemUtils {
             e.printStackTrace();
         }
         return null;
+    }
+
+    static public String getOsName() {
+        Properties props = System.getProperties();
+        return props.getProperty("os.name");
+    }
+
+    static public String getOsArch() {
+        Properties props = System.getProperties();
+        return props.getProperty("os.arch");
+    }
+
+    static public String getOsVersion() {
+        Properties props = System.getProperties();
+        return props.getProperty("os.version");
+    }
+
+    static public boolean isWindows() {
+        String osName = getOsName();
+        return osName.indexOf("Windows") >= 0;
     }
 }
