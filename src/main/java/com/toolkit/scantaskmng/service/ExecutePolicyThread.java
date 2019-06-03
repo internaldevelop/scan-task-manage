@@ -129,6 +129,7 @@ public class ExecutePolicyThread implements Runnable{
             taskRunStatusDto = new TaskRunStatusDto();
             taskRunStatusDto.setTask_uuid(this.taskUuid);
         }
+        taskRunStatusDto.setExecute_uuid(this.executeUuid);
         taskRunStatusDto.setProject_uuid(this.projectUuid);
         taskRunStatusDto.setRun_status(TaskRunStatusEnum.RUNNING.getStatus());
         taskRunStatusDto.setDone_jobs_count(0);

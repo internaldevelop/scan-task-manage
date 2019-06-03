@@ -1,9 +1,12 @@
 package com.toolkit.scantaskmng.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.toolkit.scantaskmng.global.utils.MyUtils;
 import com.toolkit.scantaskmng.global.utils.SystemUtils;
+import com.toolkit.scantaskmng.service.mq.TopicSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -11,6 +14,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(value = "/test")
 public class TestController {
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    @Autowired
+    TopicSender topicSender;
 
     @RequestMapping(value = "/os", method = RequestMethod.GET)
     @ResponseBody
@@ -20,5 +26,15 @@ public class TestController {
         jsonOS.put("OS Arch", SystemUtils.getOsArch());
         jsonOS.put("OS Version", SystemUtils.getOsVersion());
         return jsonOS;
+    }
+
+    @RequestMapping(value = "/rabbitmq", method = RequestMethod.POST)
+    @ResponseBody
+    public Object sendRabbitMsg(@RequestParam("channel") String channel, @RequestParam("message") String message) {
+        topicSender.send(channel, message);
+        JSONObject jsonResp = new JSONObject();
+        jsonResp.put("timestamp", MyUtils.getCurrentSystemTimestamp());
+        jsonResp.put("result", "OK");
+        return jsonResp;
     }
 }
