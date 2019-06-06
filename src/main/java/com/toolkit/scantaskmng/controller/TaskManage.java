@@ -27,7 +27,8 @@ public class TaskManage {
     @RequestMapping(value = "/run-project-task", method = RequestMethod.GET)
     @ResponseBody
     public Object runProjectTask(@RequestParam("project_uuid") String projectUuid,
-                          @RequestParam("task_uuid") String taskUuid) {
-        return nodesManageService.runTask(projectUuid, taskUuid);
+                                 @RequestParam("task_uuid") String taskUuid,
+                                 @RequestParam("user_uuid") String userUuid) {
+        return nodesManageService.runTask(projectUuid, taskUuid, userUuid);
     }
 }

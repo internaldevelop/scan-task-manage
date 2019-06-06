@@ -25,11 +25,12 @@ public class NodesManageService {
     public NodesManageService() {
     }
 
-    public ResponseBean runTask(String projectUuid, String taskUuid) {
+    public ResponseBean runTask(String projectUuid, String taskUuid, String userUuid) {
         // 执行策略
         JSONObject taskInfo = new JSONObject();
         taskInfo.put("project_uuid", projectUuid);
         taskInfo.put("task_uuid", taskUuid);
+        taskInfo.put("user_uuid", userUuid);
         TaskRunQueue.add(taskInfo);
         Thread thread = new Thread(execThread);
         thread.start();

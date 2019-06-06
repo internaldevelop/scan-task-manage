@@ -36,6 +36,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ExecutePolicyThread implements Runnable{
     private String projectUuid;
     private String taskUuid;
+    private String userUuid;
     private String executeUuid;
     private JSONArray policyArray;
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -113,6 +114,7 @@ public class ExecutePolicyThread implements Runnable{
         executeActionPo.setUuid(this.executeUuid);
         executeActionPo.setProject_uuid(this.projectUuid);
         executeActionPo.setTask_uuid(this.taskUuid);
+        executeActionPo.setUser_uuid(this.userUuid);
         executeActionPo.setStatus(GeneralStatusEnum.VALID.getStatus());
         executeActionPo.setExec_time(MyUtils.getCurrentSystemTimestamp());
         int count = execActionsMapper.addTaskExecAction(executeActionPo);
@@ -165,7 +167,8 @@ public class ExecutePolicyThread implements Runnable{
         }
         this.projectUuid = taskInfo.getString("project_uuid");
         this.taskUuid = taskInfo.getString("task_uuid");
-        logger.info("project UUID: " + this.projectUuid + "   task UUID: " + this.taskUuid);
+        this.userUuid = taskInfo.getString("user_uuid");
+        logger.info("project UUID: " + this.projectUuid + "\ttask UUID: " + this.taskUuid + "\tuser UUID: " + this.userUuid);
 
         // 解析任务，包含哪些策略
         ErrorCodeEnum errorCode = analyzeTask();
