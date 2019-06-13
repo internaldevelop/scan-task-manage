@@ -67,14 +67,13 @@ public class ExecutePolicyThread implements Runnable{
     }
 
     private ErrorCodeEnum analyzeTask() {
-        String taskUuid = this.taskUuid;
         // 获取任务执行状态
-        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(taskUuid);
+        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid, this.projectUuid);
         if (taskRunStatusDto == null)
             return ErrorCodeEnum.ERROR_TASK_RUN_STATUS_NOT_FOUND;
 
         // 获取指定的任务
-        TaskPo taskPo = tasksMapper.getTaskByUuid(taskUuid);
+        TaskPo taskPo = tasksMapper.getTaskByUuid(this.taskUuid);
         if (taskPo == null)
             return ErrorCodeEnum.ERROR_TASK_NOT_FOUND;
 
@@ -125,7 +124,7 @@ public class ExecutePolicyThread implements Runnable{
     }
 
     private ErrorCodeEnum saveTaskExecuteStartStatus() {
-        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid);
+        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid, this.projectUuid);
         if (taskRunStatusDto == null) {
             // 如果找不到该任务的运行信息，则需新建此任务的运行信息
             taskRunStatusDto = new TaskRunStatusDto();
@@ -144,7 +143,7 @@ public class ExecutePolicyThread implements Runnable{
         taskRunStatusDto.setRemain_time(totalTime);
         taskRunStatusDto.setTotal_time(totalTime);
         taskRunStatusDto.setDone_rate(0.0);
-        if (!taskRunStatusService.setTaskRunStatus(this.taskUuid, taskRunStatusDto))
+        if (!taskRunStatusService.setTaskRunStatus(taskRunStatusDto))
             return ErrorCodeEnum.ERROR_INTERNAL_ERROR;
 
         return ErrorCodeEnum.ERROR_OK;
@@ -186,14 +185,14 @@ public class ExecutePolicyThread implements Runnable{
             return errorCode;
 
         // 枚举每个策略
-        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid);
+        TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid, this.projectUuid);
         for (Iterator iter = this.policyArray.iterator(); iter.hasNext(); ) {
             PolicyPo policyPo = (PolicyPo) iter.next();
 
             // 执行策略，如果执行失败，则中断返回
             if (executePolicy(this.taskUuid, policyPo) != ErrorCodeEnum.ERROR_OK) {
                 taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
-                taskRunStatusService.setTaskRunStatus(this.taskUuid, taskRunStatusDto);
+                taskRunStatusService.setTaskRunStatus(taskRunStatusDto);
                 return ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY;
             }
 
@@ -204,7 +203,7 @@ public class ExecutePolicyThread implements Runnable{
             double doneRate = 1000 * (taskRunStatusDto.getTotal_time() - taskRunStatusDto.getRemain_time()) /
                     taskRunStatusDto.getTotal_time() / 10.0;
             taskRunStatusDto.setDone_rate(doneRate);
-            taskRunStatusService.setTaskRunStatus(this.taskUuid, taskRunStatusDto);
+            taskRunStatusService.setTaskRunStatus(taskRunStatusDto);
         }
 
         // 记录任务全部完成后的任务执行状态
@@ -212,7 +211,7 @@ public class ExecutePolicyThread implements Runnable{
         taskRunStatusDto.setRemain_time(0);
         taskRunStatusDto.setDone_rate(100);
         taskRunStatusDto.setRun_status(TaskRunStatusEnum.FINISHED.getStatus());
-        taskRunStatusService.setTaskRunStatus(this.taskUuid, taskRunStatusDto);
+        taskRunStatusService.setTaskRunStatus(taskRunStatusDto);
 
         return ErrorCodeEnum.ERROR_OK;
     }

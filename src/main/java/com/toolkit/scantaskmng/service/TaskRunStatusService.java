@@ -2,6 +2,7 @@ package com.toolkit.scantaskmng.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.toolkit.scantaskmng.bean.dto.TaskRunStatusDto;
+import com.toolkit.scantaskmng.global.rabbitmq.RabbitConfig;
 import com.toolkit.scantaskmng.global.redis.IRedisClient;
 import com.toolkit.scantaskmng.service.mq.TopicSender;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,24 +20,33 @@ public class TaskRunStatusService {
         return "task_run_" + taskUuid;
     }
 
-    public TaskRunStatusDto getTaskRunStatus(String taskUuid) {
+    public TaskRunStatusDto getTaskRunStatus(String taskUuid, String projectUuid) {
         String key = _getTaskRedisKey(taskUuid);
         String value = (String)redisClient.get(key);
         JSONObject jsonObject = JSONObject.parseObject(value);
-        TaskRunStatusDto taskRunStatusDto = jsonObject.getObject("status", TaskRunStatusDto.class);
+        TaskRunStatusDto taskRunStatusDto = jsonObject.getObject(projectUuid, TaskRunStatusDto.class);
         return taskRunStatusDto;
     }
-    public boolean setTaskRunStatus(String taskUuid, TaskRunStatusDto taskRunStatusDto) {
-        // 在redis缓存中记录任务运行状态
-        String key = _getTaskRedisKey(taskUuid);
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("status", taskRunStatusDto);
+    public boolean setTaskRunStatus(TaskRunStatusDto taskRunStatusDto) {
+        JSONObject jsonObject;
+        // 在redis缓存中记录任务运行状态（新建对象或追加）
+        String key = _getTaskRedisKey(taskRunStatusDto.getTask_uuid());
+        String value = (String)redisClient.get(key);
+        if (value != null && !value.isEmpty())
+            jsonObject = JSONObject.parseObject(value);
+        else
+            jsonObject = new JSONObject();
+        jsonObject.put(taskRunStatusDto.getProject_uuid(), taskRunStatusDto);
         if  (!redisClient.set(key, jsonObject.toJSONString()))
             return false;
 
         // 发送MQ消息
-        topicSender.sendRunStatusTopic(jsonObject.toJSONString());
+        mqSendRunStatus(taskRunStatusDto);
         return true;
+    }
+
+    public void mqSendRunStatus(TaskRunStatusDto taskRunStatusDto) {
+        topicSender.send(RabbitConfig.TASK_RUN_STATUS_TOPIC, JSONObject.toJSONString(taskRunStatusDto));
     }
 
     public String getString(String taskUuid) {

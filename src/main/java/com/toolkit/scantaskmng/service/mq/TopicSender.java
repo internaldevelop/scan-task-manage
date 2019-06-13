@@ -24,9 +24,9 @@ public class TopicSender {
         send(RabbitConfig.DEFAULT_TOPIC, msg);
     }
 
-    public void sendRunStatusTopic(String msg) {
-        send(RabbitConfig.TASK_RUN_STATUS_TOPIC, msg);
-    }
+//    public void sendRunStatusTopic(String msg) {
+//        send(RabbitConfig.TASK_RUN_STATUS_TOPIC, msg);
+//    }
 
     public void sendNodeTopic(String nodeIP, String msg) {
         String topic = "topic.ip." + nodeIP;
