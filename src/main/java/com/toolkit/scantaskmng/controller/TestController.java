@@ -18,6 +18,10 @@ public class TestController {
     @Autowired
     TopicSender topicSender;
 
+    /**
+     * A.1 获取操作系统信息
+     * @return
+     */
     @RequestMapping(value = "/os", method = RequestMethod.GET)
     @ResponseBody
     public Object getOsInfo() {
@@ -26,6 +30,12 @@ public class TestController {
         jsonOS.put("OS Arch", SystemUtils.getOsArch());
         jsonOS.put("OS Version", SystemUtils.getOsVersion());
         return jsonOS;
+    }
+
+    @RequestMapping(value = "/all-sys-props", method = RequestMethod.GET)
+    @ResponseBody
+    public Object getAllSystemProps() {
+        return SystemUtils.sysProps;
     }
 
     @RequestMapping(value = "/rabbitmq", method = RequestMethod.POST)

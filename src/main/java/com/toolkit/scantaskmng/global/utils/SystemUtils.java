@@ -6,6 +6,8 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 public class SystemUtils {
+    public static Properties sysProps = System.getProperties();
+
     public static InetAddress getLocalHostLANAddress() {
         try {
             InetAddress candidateAddress = null;
@@ -39,18 +41,15 @@ public class SystemUtils {
     }
 
     static public String getOsName() {
-        Properties props = System.getProperties();
-        return props.getProperty("os.name");
+        return sysProps.getProperty("os.name");
     }
 
     static public String getOsArch() {
-        Properties props = System.getProperties();
-        return props.getProperty("os.arch");
+        return sysProps.getProperty("os.arch");
     }
 
     static public String getOsVersion() {
-        Properties props = System.getProperties();
-        return props.getProperty("os.version");
+        return sysProps.getProperty("os.version");
     }
 
     static public boolean isWindows() {
