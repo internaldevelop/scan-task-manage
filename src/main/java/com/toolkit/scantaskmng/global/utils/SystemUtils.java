@@ -1,5 +1,7 @@
 package com.toolkit.scantaskmng.global.utils;
 
+import com.alibaba.fastjson.JSONObject;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
@@ -56,4 +58,28 @@ public class SystemUtils {
         String osName = getOsName();
         return osName.indexOf("Windows") >= 0;
     }
+
+    static public String getProp(String propName) {
+        return sysProps.getProperty(propName);
+    }
+
+    static public JSONObject getProps() {
+        String[] keys = {
+                "os.name", "sun.boot.library.path", "user.dir", "user.country", "java.runtime.version",
+                "os.arch", "line.separator", "os.version", "user.home", "user.timezone", "user.name",
+                "user.language", "file.separator",
+                "java.specification.version", "java.home", "sun.arch.data.model", "awt.toolkit",
+                "sun.jnu.encoding", "java.vm.version", "java.library.path", "java.class.version",
+                "java.runtime.name", "java.vm.vendor", "file.encoding", "java.version", "java.vendor",
+                "java.vm.name", "sun.os.patch.level", "PID", "catalina.base", "sun.cpu.endian",
+                "java.awt.graphicsenv", "java.endorsed.dirs", "java.io.tmpdir", "sun.desktop"
+        };
+        JSONObject props = new JSONObject();
+
+        for (String key: keys) {
+            props.put(key, sysProps.getProperty(key));
+        }
+        return props;
+    }
+
 }
