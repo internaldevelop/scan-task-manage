@@ -59,7 +59,14 @@ public class ExecutePolicyThread implements Runnable{
     public void run() {
         try {
             // 批处理执行策略
-            batchExecutePolicy();
+            ErrorCodeEnum errorCode = batchExecutePolicy();
+            if (errorCode != ErrorCodeEnum.ERROR_OK) {
+                // set the task status to interrupted if any errors.
+                TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid, this.projectUuid);
+                taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
+                taskRunStatusService.setTaskRunStatus(taskRunStatusDto);
+            }
+
         } catch (Exception e) {
             logger.error(e.getMessage());
         } finally {
@@ -79,6 +86,8 @@ public class ExecutePolicyThread implements Runnable{
 
         // 提取策略组
         JSONArray policyGroups = JSONArray.parseArray(taskPo.getPolicy_groups());
+        if (policyGroups == null)
+            return ErrorCodeEnum.ERROR_GROUP_NOT_FOUND;
 
         // 构造策略集合
         JSONArray policyArray = new JSONArray();
@@ -168,7 +177,6 @@ public class ExecutePolicyThread implements Runnable{
         this.taskUuid = taskInfo.getString("task_uuid");
         this.userUuid = taskInfo.getString("user_uuid");
         logger.info("project UUID: " + this.projectUuid + "\ttask UUID: " + this.taskUuid + "\tuser UUID: " + this.userUuid);
-
         // 解析任务，包含哪些策略
         ErrorCodeEnum errorCode = analyzeTask();
         if (errorCode != ErrorCodeEnum.ERROR_OK)
@@ -191,8 +199,8 @@ public class ExecutePolicyThread implements Runnable{
 
             // 执行策略，如果执行失败，则中断返回
             if (executePolicy(this.taskUuid, policyPo) != ErrorCodeEnum.ERROR_OK) {
-                taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
-                taskRunStatusService.setTaskRunStatus(taskRunStatusDto);
+//                taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
+//                taskRunStatusService.setTaskRunStatus(taskRunStatusDto);
                 return ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY;
             }
 
@@ -291,7 +299,11 @@ public class ExecutePolicyThread implements Runnable{
         // 保存 python 内容为临时文件
         MyFileUtils.save(pyScript, "tempexec.py");
 
-        String[] args1 = new String[]{"python","tempexec.py"};
+        // Build the script execute command line
+        boolean isWindows = SystemUtils.isWindows();
+        String pythonCmd = isWindows ? "python" : "python3";
+        String[] args1 = new String[]{ pythonCmd, "tempexec.py" };
+
         try {
             Process proc = Runtime.getRuntime().exec(args1);
             // 中文版 Windows 运行时环境的输出默认是 GBK 编码

@@ -20,11 +20,11 @@ public class AssetInfoApi {
     private AssetInfoService assetInfoService;
 
     /**
-     * 1.1 Get asset's all Info
+     * 1.1 Get asset's all infos or some designated infos
      * @param types comma split string, example: "CPU,Memory,CPU Usage"
      * @return
      */
-    @RequestMapping(value="/all", method = RequestMethod.GET)
+    @RequestMapping(value="/acquire", method = RequestMethod.GET)
     @ResponseBody
     public Object getAssetInfo(@RequestParam("types") String types) {
         return assetInfoService.fetchAssetInfo(types);

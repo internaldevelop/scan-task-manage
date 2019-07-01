@@ -57,6 +57,7 @@ public enum ErrorCodeEnum {
     ERROR_FAIL_EXEC_POLICY(2033, "策略运行失败"),
     ERROR_INCORRECT_TASK_RUN_STATUS(2034, "任务运行状态错误"),
     ERROR_TASK_RUN_STATUS_NOT_FOUND(2035, "无法获取任务的运行状态"),
+    ERROR_WIN_NO_SEC_CONFIG(2036, "不支持Windows系统安全配置采集"),
     ;
 
     private Integer code;
