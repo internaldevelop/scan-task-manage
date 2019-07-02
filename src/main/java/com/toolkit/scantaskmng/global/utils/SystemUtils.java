@@ -77,7 +77,7 @@ public class SystemUtils {
         JSONObject props = new JSONObject();
 
         for (String key: keys) {
-            props.put(key, sysProps.getProperty(key));
+            props.put(key.replaceAll("\\.", "_"), sysProps.getProperty(key));
         }
         return props;
     }
