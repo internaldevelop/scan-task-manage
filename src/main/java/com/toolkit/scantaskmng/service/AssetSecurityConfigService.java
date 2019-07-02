@@ -5,6 +5,8 @@ import com.toolkit.scantaskmng.global.bean.ResponseBean;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
 import com.toolkit.scantaskmng.global.utils.SystemUtils;
+import com.toolkit.scantaskmng.seconfig.linux.AccountSecConfig;
+import com.toolkit.scantaskmng.seconfig.linux.PasswordConfig;
 import com.toolkit.scantaskmng.seconfig.linux.StartupSecConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,6 +21,10 @@ public class AssetSecurityConfigService {
 
     @Autowired
     private StartupSecConfig startupSecConfig;
+    @Autowired
+    private AccountSecConfig accountSecConfig;
+    @Autowired
+    private PasswordConfig passwordConfig;
 
     public ResponseBean fetchSecurityConfig(String types) {
         // 不支持Windows系统安全配置采集
@@ -36,10 +42,21 @@ public class AssetSecurityConfigService {
 
         JSONObject jsonResp = new JSONObject();
 
+        // Startup security config
         if (all || typeList.contains("startup")) {
             jsonResp.put("SELinux", startupSecConfig.acquireSeLinuxInfo());
-
             jsonResp.put("selfRunServices", startupSecConfig.acquireSelfRunServices());
+        }
+
+        // Account security config
+        if (all || typeList.contains("account")) {
+            jsonResp.put("accounts", accountSecConfig.acquireAccountProps());
+            jsonResp.put("groups", accountSecConfig.acquireGroupProps());
+        }
+
+        // Password security config
+        if (all || typeList.contains("password")) {
+            jsonResp.put("passwordProps", passwordConfig.acquirePasswordProps());
         }
 
         return responseHelper.success(jsonResp);

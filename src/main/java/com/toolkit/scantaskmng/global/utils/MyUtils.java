@@ -7,6 +7,9 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -244,6 +247,11 @@ public class MyUtils {
     public static String getClassRootPath() {
 //        getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
         return ClassUtils.getDefaultClassLoader().getResource("").getPath();
+    }
+
+    public static BufferedReader getProcReader(Process proc) throws IOException {
+        // 中文版 Windows 运行时环境的输出默认是 GBK 编码
+        return new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
     }
 
 }

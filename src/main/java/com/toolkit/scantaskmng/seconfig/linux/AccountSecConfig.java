@@ -2,9 +2,11 @@ package com.toolkit.scantaskmng.seconfig.linux;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.sun.org.apache.bcel.internal.generic.RET;
 import com.toolkit.scantaskmng.global.bean.ResponseBean;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
+import com.toolkit.scantaskmng.global.utils.MyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,19 +19,26 @@ import java.util.Iterator;
 public class AccountSecConfig {
     @Autowired private ResponseHelper responseHelper;
 
-    public ResponseBean acquireAccountProps() {
+    public JSONArray acquireAccountProps() {
         JSONArray jsonAccounts = new JSONArray();
         // passwd
         if (!readPasswdRecords(jsonAccounts))
-            return responseHelper.error(ErrorCodeEnum.ERROR_FAILED_READ_PASSWD);
+            return null;
 
         // shadow
         if (!readShadowRecords(jsonAccounts))
-            return responseHelper.error(ErrorCodeEnum.ERROR_FAILED_READ_SHADOW);
+            return null;
 
+        return jsonAccounts;
+    }
+
+    public JSONArray acquireGroupProps() {
+        JSONArray jsonGroups = new JSONArray();
         // group
+        if (!readGroupRecords(jsonGroups))
+            return null;
 
-        return responseHelper.success(jsonAccounts);
+        return jsonGroups;
     }
 
     private boolean readPasswdRecords(JSONArray jsonAccounts) {
@@ -39,7 +48,7 @@ public class AccountSecConfig {
             Process proc = Runtime.getRuntime().exec(args);
 
             // read all of the accounts passwd parameters
-            BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
+            BufferedReader input = MyUtils.getProcReader(proc);
 
             // Examples:
             // tcpdump:x:72:72::/:/sbin/nologin
@@ -50,6 +59,8 @@ public class AccountSecConfig {
             // [account]:[password]:[UID]:[GID]:[comment]:[home]:[shell]
             String line;
             while ((line = input.readLine()) != null) {
+                // add a tail, avoid cutting the tail elements
+                line += ":end";
                 String[] params = line.split(":");
                 JSONObject accObject = getAccount(jsonAccounts, params[0]);
                 accObject.put("password", params[1]);
@@ -58,9 +69,6 @@ public class AccountSecConfig {
                 accObject.put("comment", params[4]);
                 accObject.put("home", params[5]);
                 accObject.put("shell", params[6]);
-
-                // add this account in the list
-                jsonAccounts.add(accObject);
             }
 
         } catch (IOException e) {
@@ -77,7 +85,7 @@ public class AccountSecConfig {
             Process proc = Runtime.getRuntime().exec(args);
 
             // Read all of the account shadow parameters
-            BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
+            BufferedReader input = MyUtils.getProcReader(proc);
 
             // Examples:
             // sshd:!!:17813::::::
@@ -90,6 +98,8 @@ public class AccountSecConfig {
             // [pwd_expire_days]:[acc_expire_time]:[reserved]
             String line;
             while ((line = input.readLine()) != null) {
+                // add a tail, avoid cutting the tail elements
+                line += ":end";
                 String[] params = line.split(":");
                 JSONObject accObject = getAccount(jsonAccounts, params[0]);
                 accObject.put("encrypted_pwd", params[1]);
@@ -99,6 +109,42 @@ public class AccountSecConfig {
                 accObject.put("acc_expire_time", params[7]);
             }
 
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean readGroupRecords(JSONArray jsonGroups) {
+        try {
+            // Output the group file contents
+            String[] args = new String[] { "cat", "/etc/group" };
+            Process proc = Runtime.getRuntime().exec(args);
+
+            // Read all of the groups records
+            BufferedReader input = MyUtils.getProcReader(proc);
+
+            // Examples:
+            // wyt:x:1001:
+            // mysql:x:27:
+            // docker:x:981:wyt
+            // Format:
+            // [group]:[group_pwd]:[GID]:[account1[,account2]]
+            String line;
+            while ((line = input.readLine()) != null) {
+                // add a tail, avoid cutting the tail elements
+                line += ":end";
+                String[] params = line.split(":");
+                JSONObject group = new JSONObject();
+                group.put("group", params[0]);
+                group.put("group_pwd", params[1]);
+                group.put("GID", params[2]);
+                group.put("accounts", params[3]);
+
+                jsonGroups.add(group);
+            }
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -119,6 +165,9 @@ public class AccountSecConfig {
         // if not existed in the list, create a new object to store the account
         jsonAcc = new JSONObject();
         jsonAcc.put("account", account);
+
+        // add this new account in the list
+        jsonAccounts.add(jsonAcc);
 
         return jsonAcc;
     }

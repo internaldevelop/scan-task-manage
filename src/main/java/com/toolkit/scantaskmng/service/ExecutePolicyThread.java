@@ -306,8 +306,7 @@ public class ExecutePolicyThread implements Runnable{
 
         try {
             Process proc = Runtime.getRuntime().exec(args1);
-            // 中文版 Windows 运行时环境的输出默认是 GBK 编码
-            BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
+            BufferedReader input = MyUtils.getProcReader(proc);
             String line;
             String results = "";
             boolean bValidInfo = false;
@@ -345,7 +344,7 @@ public class ExecutePolicyThread implements Runnable{
         Runtime runtime = Runtime.getRuntime();
         try {
             Process proc = runtime.exec("cmd.exe /c " + cmdInfo);
-            BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
+            BufferedReader input = MyUtils.getProcReader(proc);
 
             String line;
             String results = "";

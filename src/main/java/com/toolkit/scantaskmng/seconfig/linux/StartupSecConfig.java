@@ -2,6 +2,7 @@ package com.toolkit.scantaskmng.seconfig.linux;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.toolkit.scantaskmng.global.utils.MyUtils;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
@@ -19,7 +20,7 @@ public class StartupSecConfig {
             String[] args = new String[]{ "sestatus" };
             Process proc = Runtime.getRuntime().exec(args);
 
-            BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
+            BufferedReader input = MyUtils.getProcReader(proc);
 
             // Examples:
             //    SELinux status:                 enabled
@@ -84,7 +85,7 @@ public class StartupSecConfig {
             String[] args = new String[]{ "chkconfig", "--list" };
             Process proc = Runtime.getRuntime().exec(args);
 
-            BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
+            BufferedReader input = MyUtils.getProcReader(proc);
             String line;
             while ((line = input.readLine()) != null) {
                 // Check the valid line containing the services
