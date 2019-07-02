@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-//@CrossOrigin(origins = "*",maxAge = 3600)
+@CrossOrigin(origins = "*",maxAge = 3600)
 @RequestMapping(value = "/test")
 public class TestController {
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
