@@ -1,6 +1,7 @@
 package com.toolkit.scantaskmng.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.toolkit.scantaskmng.global.response.ResponseHelper;
 import com.toolkit.scantaskmng.global.utils.MyUtils;
 import com.toolkit.scantaskmng.global.utils.SystemUtils;
 import com.toolkit.scantaskmng.service.mq.TopicSender;
@@ -17,6 +18,8 @@ public class TestController {
 
     @Autowired
     TopicSender topicSender;
+    @Autowired
+    ResponseHelper responseHelper;
 
     /**
      * A.1 获取操作系统信息
@@ -29,13 +32,13 @@ public class TestController {
         jsonOS.put("OS Name", SystemUtils.getOsName());
         jsonOS.put("OS Arch", SystemUtils.getOsArch());
         jsonOS.put("OS Version", SystemUtils.getOsVersion());
-        return jsonOS;
+        return responseHelper.success(jsonOS);
     }
 
     @RequestMapping(value = "/all-sys-props", method = RequestMethod.GET)
     @ResponseBody
     public Object getAllSystemProps() {
-        return SystemUtils.sysProps;
+        return responseHelper.success(SystemUtils.sysProps);
     }
 
     @RequestMapping(value = "/rabbitmq", method = RequestMethod.POST)
@@ -45,6 +48,6 @@ public class TestController {
         JSONObject jsonResp = new JSONObject();
         jsonResp.put("timestamp", MyUtils.getCurrentSystemTimestamp());
         jsonResp.put("result", "OK");
-        return jsonResp;
+        return responseHelper.success(jsonResp);
     }
 }
