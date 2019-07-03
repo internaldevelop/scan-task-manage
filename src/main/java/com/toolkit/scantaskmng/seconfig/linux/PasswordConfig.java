@@ -24,9 +24,7 @@ public class PasswordConfig {
     private boolean getPasswordBaseProps(JSONObject pwdProps) {
         try {
             String[] args = new String[] { "sh", "-c", "cat /etc/login.defs | grep ^PASS_" };
-            Process proc = Runtime.getRuntime().exec(args);
-
-            BufferedReader input = MyUtils.getProcReader(proc);
+            BufferedReader output = MyUtils.getExecOutput(args);
 
             // Examples:
             // PASS_MAX_DAYS	99999
@@ -34,10 +32,12 @@ public class PasswordConfig {
             // PASS_MIN_LEN	5
             // PASS_WARN_AGE	7
             String line;
-            while ((line = input.readLine()) != null) {
+            while ((line = output.readLine()) != null) {
                 String[] params = line.split("\t");
                 pwdProps.put(params[0], params[1]);
             }
+
+            output.close();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -50,15 +50,13 @@ public class PasswordConfig {
     private boolean getPasswordComplexity(JSONObject pwdProps) {
         try {
             String[] args = new String[] { "sh", "-c", "cat /etc/pam.d/system-auth | grep password | grep requisite" };
-            Process proc = Runtime.getRuntime().exec(args);
-
-            BufferedReader input = MyUtils.getProcReader(proc);
+            BufferedReader output = MyUtils.getExecOutput(args);
 
             // Examples:
             // password  requisite pam_cracklib.so retry=5  difok=3 minlen=10 ucredit=-1 lcredit=-3 dcredit=-3
             // dictpath=/usr/share/cracklib/pw_dict
             // 尝试次数：5  最少不同字符：3 最小密码长度：10  最少大写字母：1 最少小写字母：3 最少数字：3 密码字典：/usr/share/cracklib/pw_dict
-            String line = input.readLine();
+            String line = output.readLine();
             if (line == null || line.isEmpty())
                 return false;
 
@@ -71,6 +69,9 @@ public class PasswordConfig {
                 String[] props = param.split("=");
                 pwdProps.put("PASS_" + props[0], props[1]);
             }
+
+            output.close();
+
         } catch (IOException e) {
             e.printStackTrace();
             return false;

@@ -45,10 +45,9 @@ public class AccountSecConfig {
         try {
             // Output the passwd file contents
             String[] args = new String[] { "cat", "/etc/passwd" };
-            Process proc = Runtime.getRuntime().exec(args);
 
             // read all of the accounts passwd parameters
-            BufferedReader input = MyUtils.getProcReader(proc);
+            BufferedReader output = MyUtils.getExecOutput(args);
 
             // Examples:
             // tcpdump:x:72:72::/:/sbin/nologin
@@ -58,7 +57,7 @@ public class AccountSecConfig {
             // Format:
             // [account]:[password]:[UID]:[GID]:[comment]:[home]:[shell]
             String line;
-            while ((line = input.readLine()) != null) {
+            while ((line = output.readLine()) != null) {
                 // add a tail, avoid cutting the tail elements
                 line += ":end";
                 String[] params = line.split(":");
@@ -71,6 +70,7 @@ public class AccountSecConfig {
                 accObject.put("shell", params[6]);
             }
 
+            output.close();
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -82,10 +82,9 @@ public class AccountSecConfig {
         try {
             // Output the shadow file contents
             String[] args = new String[] { "cat", "/etc/shadow" };
-            Process proc = Runtime.getRuntime().exec(args);
 
             // Read all of the account shadow parameters
-            BufferedReader input = MyUtils.getProcReader(proc);
+            BufferedReader output = MyUtils.getExecOutput(args);
 
             // Examples:
             // sshd:!!:17813::::::
@@ -97,7 +96,7 @@ public class AccountSecConfig {
             // [account]:[encrypted_pwd]:[last_modified_time]:[pwd_unchange_days]:[pwd_live_days]:[pwd_tip_days]:
             // [pwd_expire_days]:[acc_expire_time]:[reserved]
             String line;
-            while ((line = input.readLine()) != null) {
+            while ((line = output.readLine()) != null) {
                 // add a tail, avoid cutting the tail elements
                 line += ":end";
                 String[] params = line.split(":");
@@ -109,6 +108,7 @@ public class AccountSecConfig {
                 accObject.put("acc_expire_time", params[7]);
             }
 
+            output.close();
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -121,10 +121,9 @@ public class AccountSecConfig {
         try {
             // Output the group file contents
             String[] args = new String[] { "cat", "/etc/group" };
-            Process proc = Runtime.getRuntime().exec(args);
 
             // Read all of the groups records
-            BufferedReader input = MyUtils.getProcReader(proc);
+            BufferedReader output = MyUtils.getExecOutput(args);
 
             // Examples:
             // wyt:x:1001:
@@ -133,7 +132,7 @@ public class AccountSecConfig {
             // Format:
             // [group]:[group_pwd]:[GID]:[account1[,account2]]
             String line;
-            while ((line = input.readLine()) != null) {
+            while ((line = output.readLine()) != null) {
                 // add a tail, avoid cutting the tail elements
                 line += ":end";
                 String[] params = line.split(":");
@@ -145,6 +144,8 @@ public class AccountSecConfig {
 
                 jsonGroups.add(group);
             }
+
+            output.close();
         } catch (IOException e) {
             e.printStackTrace();
             return false;

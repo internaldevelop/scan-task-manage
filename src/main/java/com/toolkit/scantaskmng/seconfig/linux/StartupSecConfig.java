@@ -18,9 +18,7 @@ public class StartupSecConfig {
     public JSONObject acquireSeLinuxInfo() {
         try {
             String[] args = new String[]{ "sestatus" };
-            Process proc = Runtime.getRuntime().exec(args);
-
-            BufferedReader input = MyUtils.getProcReader(proc);
+            BufferedReader output = MyUtils.getExecOutput(args);
 
             // Examples:
             //    SELinux status:                 enabled
@@ -34,7 +32,7 @@ public class StartupSecConfig {
             //    Max kernel policy version:      31
 
             String line;
-            while ((line = input.readLine()) != null) {
+            while ((line = output.readLine()) != null) {
                 String[] keyValue = line.split(":");
                 if (keyValue[0].equals("Current mode")) {
                     // Current mode is the active mode of SELinux
@@ -60,7 +58,7 @@ public class StartupSecConfig {
                     seLinuxEnabled = keyValue[1].contains("enabled");
                 }
             }
-            input.close();
+            output.close();
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -83,11 +81,10 @@ public class StartupSecConfig {
         JSONArray jsonServices = new JSONArray();
         try {
             String[] args = new String[]{ "chkconfig", "--list" };
-            Process proc = Runtime.getRuntime().exec(args);
+            BufferedReader output = MyUtils.getExecOutput(args);
 
-            BufferedReader input = MyUtils.getProcReader(proc);
             String line;
-            while ((line = input.readLine()) != null) {
+            while ((line = output.readLine()) != null) {
                 // Check the valid line containing the services
                 if (line.isEmpty() || line.startsWith(" ") || !line.contains("0:"))
                     continue;
@@ -104,6 +101,7 @@ public class StartupSecConfig {
                 jsonServices.add(jsonService);
             }
 
+            output.close();
         } catch (IOException e) {
             e.printStackTrace();
             return null;

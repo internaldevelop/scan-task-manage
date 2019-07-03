@@ -254,4 +254,28 @@ public class MyUtils {
         return new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
     }
 
+    public static BufferedReader getExecOutput(String[] args) throws IOException {
+        Process proc = Runtime.getRuntime().exec(args);
+        return getProcReader(proc);
+    }
+
+    public static boolean checkServiceActive(String service) {
+        try {
+            String command = String.format("systemctl status %s | grep Active", service);
+            String[] args = new String[] { "sh", "-c", command };
+            BufferedReader output = getExecOutput(args);
+
+            String line = output.readLine();
+            output.close();
+            if (line == null || line.isEmpty()) {
+                return false;
+            } else {
+                return line.contains("Active: active");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }

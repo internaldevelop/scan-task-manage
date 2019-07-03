@@ -306,11 +306,11 @@ public class ExecutePolicyThread implements Runnable{
 
         try {
             Process proc = Runtime.getRuntime().exec(args1);
-            BufferedReader input = MyUtils.getProcReader(proc);
+            BufferedReader output = MyUtils.getProcReader(proc);
             String line;
             String results = "";
             boolean bValidInfo = false;
-            while ((line = input.readLine()) != null) {
+            while ((line = output.readLine()) != null) {
                 // 运行进程输出信息中包含了命令自身的输出，需略过
                 if (!bValidInfo && line.length() > 8 && line.substring(0, 8).equals("{'info':"))
                     bValidInfo = true;
@@ -319,7 +319,7 @@ public class ExecutePolicyThread implements Runnable{
 
                 results += line + "\n";
             }
-            input.close();
+            output.close();
 
             // 结果如果为空，则报告执行错误
             if (results.isEmpty()) {
@@ -344,14 +344,14 @@ public class ExecutePolicyThread implements Runnable{
         Runtime runtime = Runtime.getRuntime();
         try {
             Process proc = runtime.exec("cmd.exe /c " + cmdInfo);
-            BufferedReader input = MyUtils.getProcReader(proc);
+            BufferedReader output = MyUtils.getProcReader(proc);
 
             String line;
             String results = "";
-            while ((line = input.readLine()) != null) {
+            while ((line = output.readLine()) != null) {
                 results += line + "\n";
             }
-            input.close();
+            output.close();
 
             int exitVal = proc.waitFor();
             System.out.println("Exited with error code " + exitVal);

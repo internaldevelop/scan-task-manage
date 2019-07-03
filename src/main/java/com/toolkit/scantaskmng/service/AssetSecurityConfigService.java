@@ -5,9 +5,7 @@ import com.toolkit.scantaskmng.global.bean.ResponseBean;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
 import com.toolkit.scantaskmng.global.utils.SystemUtils;
-import com.toolkit.scantaskmng.seconfig.linux.AccountSecConfig;
-import com.toolkit.scantaskmng.seconfig.linux.PasswordConfig;
-import com.toolkit.scantaskmng.seconfig.linux.StartupSecConfig;
+import com.toolkit.scantaskmng.seconfig.linux.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +23,14 @@ public class AssetSecurityConfigService {
     private AccountSecConfig accountSecConfig;
     @Autowired
     private PasswordConfig passwordConfig;
+    @Autowired
+    private SysServiceConfig serviceConfig;
+    @Autowired
+    private FirewallConfig firewallConfig;
+    @Autowired
+    private IptablesConfig iptablesConfig;
+    @Autowired
+    private LoginSecureConfig loginSecureConfig;
 
     public ResponseBean fetchSecurityConfig(String types) {
         // 不支持Windows系统安全配置采集
@@ -57,6 +63,18 @@ public class AssetSecurityConfigService {
         // Password security config
         if (all || typeList.contains("password")) {
             jsonResp.put("passwordProps", passwordConfig.acquirePasswordProps());
+        }
+
+        // System service config
+        if (all || typeList.contains("service")) {
+            jsonResp.put("sshConfig", serviceConfig.acquireSSHProps());
+            jsonResp.put("firewall", firewallConfig.acquireFirewallProps());
+            jsonResp.put("iptables", iptablesConfig.acquireIptablesProps());
+        }
+
+        // Login security config
+        if (all || typeList.contains("login")) {
+            jsonResp.put("login", loginSecureConfig.acquireLoginProps());
         }
 
         return responseHelper.success(jsonResp);
