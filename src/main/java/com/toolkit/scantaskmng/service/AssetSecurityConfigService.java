@@ -31,6 +31,8 @@ public class AssetSecurityConfigService {
     private IptablesConfig iptablesConfig;
     @Autowired
     private LoginSecureConfig loginSecureConfig;
+    @Autowired
+    private SysLogConfig sysLogConfig;
 
     public ResponseBean fetchSecurityConfig(String types) {
         // 不支持Windows系统安全配置采集
@@ -75,6 +77,16 @@ public class AssetSecurityConfigService {
         // Login security config
         if (all || typeList.contains("login")) {
             jsonResp.put("login", loginSecureConfig.acquireLoginProps());
+        }
+
+        // iptables config
+        if (all || typeList.contains("iptables")) {
+            jsonResp.put("iptablesConfig", iptablesConfig.acquireIptablesRules());
+        }
+
+        // system log config
+        if (all || typeList.contains("syslog")) {
+            jsonResp.put("syslog", sysLogConfig.acquireSysLogConfig());
         }
 
         return responseHelper.success(jsonResp);
