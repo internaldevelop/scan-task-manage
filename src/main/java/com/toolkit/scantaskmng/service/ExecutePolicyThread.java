@@ -60,7 +60,7 @@ public class ExecutePolicyThread implements Runnable{
         try {
             // 批处理执行策略
             ErrorCodeEnum errorCode = batchExecutePolicy();
-            if (errorCode != ErrorCodeEnum.ERROR_OK) {
+            if (errorCode != ErrorCodeEnum.ERROR_OK && errorCode != ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY) {
                 // set the task status to interrupted if any errors.
                 TaskRunStatusDto taskRunStatusDto = taskRunStatusService.getTaskRunStatus(this.taskUuid, this.projectUuid);
                 taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
@@ -199,8 +199,11 @@ public class ExecutePolicyThread implements Runnable{
 
             // 执行策略，如果执行失败，则中断返回
             if (executePolicy(this.taskUuid, policyPo) != ErrorCodeEnum.ERROR_OK) {
-//                taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
-//                taskRunStatusService.setTaskRunStatus(taskRunStatusDto);
+                taskRunStatusDto.setFail_policy_group_uuid(policyPo.getGroup_uuid());
+                taskRunStatusDto.setFail_policy_uuid(policyPo.getUuid());
+                taskRunStatusDto.setFail_policy_name(policyPo.getName());
+                taskRunStatusDto.setRun_status(TaskRunStatusEnum.INTERRUPTED.getStatus());
+                taskRunStatusService.setTaskRunStatus(taskRunStatusDto);
                 return ErrorCodeEnum.ERROR_FAIL_EXEC_POLICY;
             }
 
@@ -286,10 +289,7 @@ public class ExecutePolicyThread implements Runnable{
                 return errorCode;
         } else if (policyPo.getRun_mode() == PolicyRunModeEnum.COMMAND.getMode()) {
             // 执行系统命令或工具命令
-            // 由于解析的难度，本版本不支持
-//            errorCode = execCommand(resultUuid, policyPo.getRun_contents());
-//            if (errorCode != ErrorCodeEnum.ERROR_OK)
-//                return errorCode;
+            // 本版本不支持
         }
 
         return ErrorCodeEnum.ERROR_OK;

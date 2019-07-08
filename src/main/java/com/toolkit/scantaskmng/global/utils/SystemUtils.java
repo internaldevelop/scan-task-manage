@@ -82,4 +82,8 @@ public class SystemUtils {
         return props;
     }
 
+    static public String getEnvEncoding() {
+        return sysProps.getProperty("sun.jnu.encoding");
+    }
+
 }

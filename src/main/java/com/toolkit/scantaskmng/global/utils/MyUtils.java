@@ -251,7 +251,8 @@ public class MyUtils {
 
     public static BufferedReader getProcReader(Process proc) throws IOException {
         // 中文版 Windows 运行时环境的输出默认是 GBK 编码
-        return new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
+//        return new BufferedReader(new InputStreamReader(proc.getInputStream(), "GBK"));
+        return new BufferedReader(new InputStreamReader(proc.getInputStream(), SystemUtils.getEnvEncoding()));
     }
 
     public static BufferedReader getExecOutput(String[] args) throws IOException {
