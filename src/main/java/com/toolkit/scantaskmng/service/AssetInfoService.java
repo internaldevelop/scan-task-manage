@@ -46,10 +46,11 @@ public class AssetInfoService {
         }
 
         // CPU percent
-//        if (bAll || typeList.contains("CPU usage")) {
-//            CpuPerc[] cpuPercs = SigarUtils.getCpuPercent();
-//            jsonInfo.put("CPU usage", cpuPercs);
-//        }
+        if (bAll || typeList.contains("CPU Usage")) {
+            CpuPerc[] cpuPercs = SigarUtils.getCpuPercent();
+            jsonInfo.put("CPU percents", cpuPercs);
+            jsonInfo.put("CPU usage", SigarUtils.getCpuTotalPercent(cpuPercs));
+        }
 
         // System property
         if (bAll || typeList.contains("System")) {
@@ -97,6 +98,18 @@ public class AssetInfoService {
         if (bAll || typeList.contains("Net Statics")) {
             JSONArray stat = SigarUtils.getIFStatInfos();
             jsonInfo.put("Net Statics", stat);
+        }
+
+        // Process CPU Usage: ratio / ranking
+        if (bAll || typeList.contains("Proc CPU Ranking")) {
+            JSONArray usage = SigarUtils.getCpuUsage();
+            jsonInfo.put("Proc CPU Ranking", usage);
+        }
+
+        // Process Memory Usage: ratio / ranking
+        if (bAll || typeList.contains("Proc Memory Ranking")) {
+            JSONArray usage = SigarUtils.getMemoryUsage();
+            jsonInfo.put("Proc Memory Ranking", usage);
         }
 
         return responseHelper.success(jsonInfo);

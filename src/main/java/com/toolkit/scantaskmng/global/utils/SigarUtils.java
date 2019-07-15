@@ -7,6 +7,7 @@ import org.hyperic.sigar.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -40,6 +41,14 @@ public class SigarUtils {
         }
 
         return cpuPercs;
+    }
+
+    public static double getCpuTotalPercent(CpuPerc[] cpuPercs) {
+        double sum = 0.0;
+        for (CpuPerc cpuPerc : cpuPercs) {
+            sum += cpuPerc.getCombined();
+        }
+        return sum / cpuPercs.length;
     }
 
     public static Mem getMemInfos() {
@@ -79,7 +88,7 @@ public class SigarUtils {
         JSONArray infos = new JSONArray();
         try {
             FileSystem[] fileSystems = getSigar().getFileSystemList();
-            infos = (JSONArray)JSONArray.toJSON(fileSystems);
+            infos = (JSONArray) JSONArray.toJSON(fileSystems);
             for (Iterator it = infos.iterator(); it.hasNext(); ) {
                 JSONObject fs = (JSONObject) it.next();
                 FileSystemUsage usage = getSigar().getFileSystemUsage(fs.getString("dirName"));
@@ -107,10 +116,10 @@ public class SigarUtils {
         List<NetInterfaceConfig> configs = new ArrayList<>();
         try {
             String[] iFaces = getSigar().getNetInterfaceList();
-            for (String iface: iFaces) {
+            for (String iface : iFaces) {
                 NetInterfaceConfig cfg = getSigar().getNetInterfaceConfig(iface);
                 if (NetFlags.LOOPBACK_ADDRESS.equals(cfg.getAddress()) ||
-                        (cfg.getFlags() & NetFlags.IFF_LOOPBACK) !=0 ||
+                        (cfg.getFlags() & NetFlags.IFF_LOOPBACK) != 0 ||
                         NetFlags.NULL_HWADDR.equals(cfg.getHwaddr())) {
                     continue;
                 }
@@ -142,7 +151,7 @@ public class SigarUtils {
         JSONArray infos = new JSONArray();
         try {
             String[] ifNames = getSigar().getNetInterfaceList();
-            for (String name: ifNames) {
+            for (String name : ifNames) {
                 // iface-stat
                 NetInterfaceStat stat = getSigar().getNetInterfaceStat(name);
                 JSONObject info = (JSONObject) JSONObject.toJSON(stat);
@@ -160,6 +169,130 @@ public class SigarUtils {
         }
 
         return infos;
+    }
+
+    public static boolean needWindowsHigherPrivlidge(String procName) {
+        String winProcNames = "System,Registry,smss,csrss,wininit,services,Memory Compression,SecurityHealthService,SgrmBroker";
+        List<String> winProcNameList = Arrays.asList(winProcNames.split(","));
+        return winProcNameList.contains(procName);
+    }
+
+    public static JSONArray getCpuUsage() {
+        JSONArray usages = new JSONArray();
+        int totalSize = 10;
+
+        // 获取所有进程的ID
+        long[] pids = new long[0];
+        try {
+            pids = getSigar().getProcList();
+        } catch (SigarException e) {
+            e.printStackTrace();
+            return usages;
+        }
+
+        for (long pid : pids) {
+
+            try {
+                // 获取进程的CPU使用信息
+                ProcState procState = getSigar().getProcState(pid);
+                // Windows 系统中，需要高权限才能访问的进程，跳过
+                if (SystemUtils.isWindows() && needWindowsHigherPrivlidge(procState.getName())) {
+                    continue;
+                }
+//                ProcCpu procCpu = new ProcCpu();
+//                procCpu.gather(getSigar(), pid);
+                ProcCpu procCpu = getSigar().getProcCpu(pid);
+
+                // 使用率占用排序，从高到低
+                int index = 0;
+                for (Iterator iter = usages.iterator(); iter.hasNext(); index++) {
+                    JSONObject proc = (JSONObject) iter.next();
+                    double procPercent = proc.getDoubleValue("percent");
+                    if (procCpu.getPercent() > procPercent) {
+                        break;
+                    }
+                }
+
+                // 1. 列表没有填满时，添加一项使用率，位置由 index 确定
+                // 2. 按照前述的排序位置插入一项使用率，位置由 index 确定
+                if (index < totalSize) {
+                    JSONObject jsonCpu = new JSONObject();
+                    jsonCpu.put("pid", pid);
+                    jsonCpu.put("name", procState.getName());
+                    jsonCpu.put("percent", procCpu.getPercent());
+                    usages.add(index, jsonCpu);
+
+                    // 如果列表元素数量超过最大允许值，则删除尾部元素
+                    if (usages.size() > totalSize) {
+                        usages.remove(totalSize);
+                    }
+                }
+            } catch (SigarException e) {
+                e.printStackTrace();
+                continue;
+            }
+        }
+
+        return usages;
+    }
+
+    public static JSONArray getMemoryUsage() {
+        JSONArray usages = new JSONArray();
+        int totalSize = 10;
+
+        // 获取所有进程的ID
+        long[] pids = new long[0];
+        Mem mem;
+        try {
+            pids = getSigar().getProcList();
+            mem = getMemInfos();
+        } catch (SigarException e) {
+            e.printStackTrace();
+            return usages;
+        }
+
+        for (long pid : pids) {
+            try {
+                // 获取进程的CPU使用信息
+                ProcState procState = getSigar().getProcState(pid);
+                // Windows 系统中，需要高权限才能访问的进程，跳过
+                if (SystemUtils.isWindows() && needWindowsHigherPrivlidge(procState.getName())) {
+                    continue;
+                }
+
+                ProcMem procMem = getSigar().getProcMem(pid);
+                // 使用率占用排序，从高到低
+                int index = 0;
+                for (Iterator iter = usages.iterator(); iter.hasNext(); index++) {
+                    JSONObject proc = (JSONObject) iter.next();
+                    double procPercent = proc.getDoubleValue("percent");
+                    if (procMem.getResident() * 1.0 / mem.getTotal() > procPercent) {
+                        break;
+                    }
+                }
+
+                // 1. 列表没有填满时，添加一项使用率，位置由 index 确定
+                // 2. 按照前述的排序位置插入一项使用率，位置由 index 确定
+                if (index < totalSize) {
+                    JSONObject jsonMem = new JSONObject();
+                    jsonMem.put("pid", pid);
+                    jsonMem.put("name", procState.getName());
+                    jsonMem.put("mem", procMem);
+                    jsonMem.put("percent", procMem.getResident() * 1.0 / mem.getTotal());
+                    usages.add(index, jsonMem);
+
+                    // 如果列表元素数量超过最大允许值，则删除尾部元素
+                    if (usages.size() > totalSize) {
+                        usages.remove(totalSize);
+                    }
+                }
+            } catch (SigarException e) {
+                e.printStackTrace();
+                continue;
+            }
+        }
+
+        return usages;
     }
 
     public static Object getSystemProps() {
