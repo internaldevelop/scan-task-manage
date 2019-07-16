@@ -179,7 +179,7 @@ public class SigarUtils {
 
     public static JSONArray getCpuUsage() {
         JSONArray usages = new JSONArray();
-        int totalSize = 10;
+        int maxSize = 10;
 
         // 获取所有进程的ID
         long[] pids = new long[0];
@@ -215,7 +215,7 @@ public class SigarUtils {
 
                 // 1. 列表没有填满时，添加一项使用率，位置由 index 确定
                 // 2. 按照前述的排序位置插入一项使用率，位置由 index 确定
-                if (index < totalSize) {
+                if (index < maxSize) {
                     JSONObject jsonCpu = new JSONObject();
                     jsonCpu.put("pid", pid);
                     jsonCpu.put("name", procState.getName());
@@ -223,8 +223,8 @@ public class SigarUtils {
                     usages.add(index, jsonCpu);
 
                     // 如果列表元素数量超过最大允许值，则删除尾部元素
-                    if (usages.size() > totalSize) {
-                        usages.remove(totalSize);
+                    if (usages.size() > maxSize) {
+                        usages.remove(maxSize);
                     }
                 }
             } catch (SigarException e) {
@@ -238,7 +238,7 @@ public class SigarUtils {
 
     public static JSONArray getMemoryUsage() {
         JSONArray usages = new JSONArray();
-        int totalSize = 10;
+        int maxSize = 10;
 
         // 获取所有进程的ID
         long[] pids = new long[0];
@@ -261,29 +261,30 @@ public class SigarUtils {
                 }
 
                 ProcMem procMem = getSigar().getProcMem(pid);
+                double usedPercent = procMem.getResident() * 1.0 / mem.getTotal();
                 // 使用率占用排序，从高到低
                 int index = 0;
                 for (Iterator iter = usages.iterator(); iter.hasNext(); index++) {
                     JSONObject proc = (JSONObject) iter.next();
                     double procPercent = proc.getDoubleValue("percent");
-                    if (procMem.getResident() * 1.0 / mem.getTotal() > procPercent) {
+                    if (usedPercent > procPercent) {
                         break;
                     }
                 }
 
                 // 1. 列表没有填满时，添加一项使用率，位置由 index 确定
                 // 2. 按照前述的排序位置插入一项使用率，位置由 index 确定
-                if (index < totalSize) {
+                if (index < maxSize) {
                     JSONObject jsonMem = new JSONObject();
                     jsonMem.put("pid", pid);
                     jsonMem.put("name", procState.getName());
                     jsonMem.put("mem", procMem);
-                    jsonMem.put("percent", procMem.getResident() * 1.0 / mem.getTotal());
+                    jsonMem.put("percent", usedPercent);
                     usages.add(index, jsonMem);
 
                     // 如果列表元素数量超过最大允许值，则删除尾部元素
-                    if (usages.size() > totalSize) {
-                        usages.remove(totalSize);
+                    if (usages.size() > maxSize) {
+                        usages.remove(maxSize);
                     }
                 }
             } catch (SigarException e) {

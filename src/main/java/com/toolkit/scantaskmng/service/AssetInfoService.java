@@ -25,7 +25,7 @@ public class AssetInfoService {
     @Autowired
     ResponseHelper responseHelper;
 
-    public ResponseBean fetchAssetInfo(String types) {
+    synchronized public ResponseBean fetchAssetInfo(String types) {
 //        AssetInfoDto assetInfo = new AssetInfoDto();
 
         boolean bAll = false;
