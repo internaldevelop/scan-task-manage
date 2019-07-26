@@ -112,6 +112,12 @@ public class AssetInfoService {
             jsonInfo.put("Proc Memory Ranking", usage);
         }
 
+        // Port
+        if (bAll || typeList.contains("Port")) {
+            JSONArray openPorts = SystemUtils.getOpenPorts();
+            jsonInfo.put("Open Ports", openPorts);
+        }
+
         return responseHelper.success(jsonInfo);
     }
 }
