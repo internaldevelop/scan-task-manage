@@ -134,9 +134,12 @@ public class SystemUtils {
                     } else {
                         portObj.put("status", "None");
                     }
+                    // 序号
+                    portObj.put("index", openPorts.size() + 1);
 
                     // 添加本条记录
                     openPorts.add(portObj);
+
                 }
 
                 output.close();
@@ -189,6 +192,8 @@ public class SystemUtils {
                     } else {
                         portObj.put("status", "None");
                     }
+                    // 序号
+                    portObj.put("index", openPorts.size() + 1);
 
                     // 添加本条记录
                     openPorts.add(portObj);
