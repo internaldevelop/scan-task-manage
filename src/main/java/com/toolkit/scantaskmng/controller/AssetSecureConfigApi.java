@@ -29,4 +29,17 @@ public class AssetSecureConfigApi {
     public Object getAssetSecurityConfig(@RequestParam("types") String types) {
         return secConfigService.fetchSecurityConfig(types);
     }
+
+    /**
+     * 2.2 设置Linux用户账号密码
+     * @param account
+     * @param password
+     * @return
+     */
+    @RequestMapping(value="/set-user-pwd", method = RequestMethod.POST)
+    @ResponseBody
+    public Object setUserPassword(@RequestParam("account") String account,
+                                  @RequestParam("password") String password) {
+        return secConfigService.setUserAccountPwd(account, password);
+    }
 }
