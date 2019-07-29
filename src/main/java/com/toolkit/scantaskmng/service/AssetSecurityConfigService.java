@@ -165,7 +165,7 @@ public class AssetSecurityConfigService {
     private boolean setAccountPwd(String account, String password) {
         try {
             // 修改账户密码
-            String[] args = new String[]{"password", account};
+            String[] args = new String[]{"passwd", account};
             Process proc = Runtime.getRuntime().exec(args);
 
             // 等待输入新密码
@@ -173,11 +173,9 @@ public class AssetSecurityConfigService {
             OutputStream out = proc.getOutputStream();
             out.write((password+"\n").getBytes());
             out.flush();
-            out.close();
 
             // 等待再次输入新密码
             Scanner sc2 = new Scanner(System.in);
-            out = proc.getOutputStream();
             out.write((password+"\n").getBytes());
             out.flush();
             out.close();
