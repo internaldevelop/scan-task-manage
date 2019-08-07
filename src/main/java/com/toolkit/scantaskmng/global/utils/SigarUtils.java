@@ -84,6 +84,42 @@ public class SigarUtils {
         return whos;
     }
 
+    public static JSONObject getFSTotalInfo() {
+        JSONObject fsTotal = new JSONObject();
+
+        long allTotal = 0;  //磁盘总大小
+        long usedTotal = 0; //磁盘总使用大小
+
+        try {
+            FileSystem[] fileSystems = getSigar().getFileSystemList();
+            JSONArray infos = (JSONArray) JSONArray.toJSON(fileSystems);
+            for (Iterator it = infos.iterator(); it.hasNext(); ) {
+                JSONObject fs = (JSONObject) it.next();
+                FileSystemUsage usage = getSigar().getFileSystemUsage(fs.getString("dirName"));
+                // TYPE_LOCAL_DISK: 2, TYPE_NETWORK: 3, TYPE_RAM_DISK(FlashDisk): 4, TYPE_CDROM: 5
+                if (fs.getIntValue("type") == 2) {
+                    // Unit: KBytes
+                    long total = usage.getTotal();
+                    allTotal += total;
+                    long used = usage.getUsed();
+                    usedTotal += used;
+                }
+            }
+        } catch (SigarException e) {
+            e.printStackTrace();
+        }
+
+        fsTotal.put("allTotal", allTotal);
+        fsTotal.put("usedTotal", usedTotal);
+        fsTotal.put("freeTotal", allTotal - usedTotal);
+        Double usedPercentTotal = 100D * usedTotal / allTotal;   //总磁盘使用率
+        fsTotal.put("usedPercentTotal", usedPercentTotal);
+        fsTotal.put("freePercentTotal", 100 - usedPercentTotal);
+
+        return fsTotal;
+
+    }
+
     public static JSONArray getFSInfos() {
         JSONArray infos = new JSONArray();
         try {

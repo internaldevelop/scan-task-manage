@@ -83,6 +83,12 @@ public class AssetInfoService {
             jsonInfo.put("FS", fsInfos);
         }
 
+        // 总磁盘信息
+        if (bAll || typeList.contains("FST")) {
+            JSONObject fsTotalInfos = SigarUtils.getFSTotalInfo();
+            jsonInfo.put("FS", fsTotalInfos);
+        }
+
         // Network interfaces
         if (bAll || typeList.contains("Net Config")) {
             List<NetInterfaceConfig> configs = SigarUtils.getNetIConfig();
