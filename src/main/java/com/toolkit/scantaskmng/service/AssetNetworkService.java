@@ -28,8 +28,10 @@ public class AssetNetworkService {
             String typeCode = "tcp_lat";
             String command = String.format("qperf %s tcp_lat", ip);  // 延时
             if ("2".equals(type)) {
+                typeCode = "tcp_bw_throughput";
                 command = String.format("qperf %s tcp_bw", ip);  // 吞吐量
             } else if ("3".equals(type)) {
+                typeCode = "tcp_bw";
                 command = String.format("qperf %s tcp_bw", ip);  //带宽
             }
 

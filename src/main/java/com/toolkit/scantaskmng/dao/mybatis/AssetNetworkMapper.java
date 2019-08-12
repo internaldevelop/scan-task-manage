@@ -1,5 +1,6 @@
 package com.toolkit.scantaskmng.dao.mybatis;
 
+import com.toolkit.scantaskmng.bean.po.AssetPerfDataPo;
 import com.toolkit.scantaskmng.bean.po.PolicyPo;
 import org.apache.ibatis.annotations.*;
 import org.springframework.stereotype.Component;
@@ -56,4 +57,28 @@ public interface AssetNetworkMapper {
             "WHERE " +
             "p.uuid=#{uuid} ")
     int  updateStatus(@Param("uuid") String policyUuid, @Param("status") int status);
+
+    /**
+     * 资产使用率添加
+     * @param assetPerfDataPo
+     * @return
+     */
+    @Insert(" INSERT INTO asset_perf_data ( `uuid`, `asset_uuid`, `cpu_used_percent`, `memory_used_percent`, `disk_used_percent`, `create_time` )\n" +
+            " VALUES\n" +
+            " (#{uuid}, #{asset_uuid}, #{cpu_used_percent}, #{memory_used_percent}, #{disk_used_percent}, #{create_time, jdbcType=TIMESTAMP})")
+    int addAssetPerfData(AssetPerfDataPo assetPerfDataPo);
+
+    /**
+     * 根据ip查询资产UUID
+     * @param asset_ips
+     * @return
+     */
+    @Select("<script> " +
+            "SELECT GROUP_CONCAT(uuid) FROM assets where ip IN " +
+            "<foreach item='item' index='index' collection = 'asset_ips' open='(' separator=',' close=')'>\n" +
+            "\t#{item}\n" +
+            "</foreach> " +
+            "</script>")
+    String getAssetUUid(@Param("asset_ips") List<String> asset_ips);
+
 }
