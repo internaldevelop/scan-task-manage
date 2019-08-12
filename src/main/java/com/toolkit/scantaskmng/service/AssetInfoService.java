@@ -86,7 +86,7 @@ public class AssetInfoService {
         // 总磁盘信息
         if (bAll || typeList.contains("FST")) {
             JSONObject fsTotalInfos = SigarUtils.getFSTotalInfo();
-            jsonInfo.put("FS", fsTotalInfos);
+            jsonInfo.put("FST", fsTotalInfos);
         }
 
         // Network interfaces
