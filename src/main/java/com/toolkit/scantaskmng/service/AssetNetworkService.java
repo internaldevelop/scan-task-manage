@@ -1,5 +1,7 @@
 package com.toolkit.scantaskmng.service;
 
+import com.alibaba.fastjson.JSONObject;
+import com.toolkit.scantaskmng.global.bean.ResponseBean;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
 import com.toolkit.scantaskmng.global.utils.MyUtils;
 import org.slf4j.Logger;
@@ -17,10 +19,13 @@ public class AssetNetworkService {
     @Autowired
     ResponseHelper responseHelper;
 
-    public String getDelayInfo(String type, String ip) {  // typo 1:延时; 2:吞吐量; 3:;
+    public ResponseBean getDelayInfo(String type, String ip) {  // typo 1:延时; 2:吞吐量; 3:带宽;
+        JSONObject jsonInfo = new JSONObject();
+
         try {
 //            tcp_bw：B与A节点建立tcp连接能够跑的带宽（B服务器带宽为10M）。
 //            tcp_lat:  B与A节点的延时。
+            String typeCode = "tcp_lat";
             String command = String.format("qperf %s tcp_lat", ip);  // 延时
             if ("2".equals(type)) {
                 command = String.format("qperf %s tcp_bw", ip);  // 吞吐量
@@ -50,22 +55,20 @@ public class AssetNetworkService {
                     zCode = line.replaceAll(sKey, "");
                     logger.info("吞吐量==========================" + zCode);
 
-                    logger.info("吞吐量计算==========================" + sKey1 + zCode);
-
                     output.close();
-                    return sKey1 + zCode;
+                    jsonInfo.put(typeCode, sKey1 + zCode);
+//                    return sKey1 + zCode;
                 } else if ((line.indexOf("bw") > -1) || (line.indexOf("latency") > -1)){
                     logger.info("==========================" + line.substring(line.indexOf("=") + 1));
                     output.close();
-                    return line.substring(line.indexOf("=") + 1);
+                    jsonInfo.put(typeCode, line.substring(line.indexOf("=") + 1));
                 }
             }
             output.close();
-            return line;
         } catch (IOException e) {
             e.printStackTrace();
-            return "";
         }
+        return responseHelper.success(jsonInfo);
     }
 
 
