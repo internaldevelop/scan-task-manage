@@ -1,13 +1,9 @@
 package com.toolkit.scantaskmng.service;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.toolkit.scantaskmng.global.bean.ResponseBean;
+import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
-import com.toolkit.scantaskmng.global.utils.MyUtils;
-import com.toolkit.scantaskmng.global.utils.SigarUtils;
-import com.toolkit.scantaskmng.global.utils.SystemUtils;
-import org.hyperic.sigar.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +13,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.List;
 
 @Component
 public class NetConnectService {
@@ -80,4 +74,36 @@ public class NetConnectService {
 
     }
 
+    public ResponseBean urlResp(String url) {
+        JSONObject jsonData = new JSONObject();
+        boolean trueFlag = false;
+        String []cmds = {"curl", "-i", "-w",
+                "curl_status:%{http_code}==curl_total_time:%{time_total}s", url};
+        ProcessBuilder pb=new ProcessBuilder(cmds);
+        pb.redirectErrorStream(true);
+        try {
+            Process p = pb.start();
+            BufferedReader br=null;
+            String line=null;
+            br=new BufferedReader(new InputStreamReader(p.getInputStream(), "gbk"));
+            while((line=br.readLine())!=null){
+                System.out.println("\n" + line);
+                if (line.indexOf("curl_status:200") > -1 || (line.indexOf("timestamp") > -1 && line.indexOf("status") > -1)) {
+                    String[] ctTimes = line.substring(line.indexOf("curl_total_time")).split(":");
+                    System.out.println(ctTimes[0] + "===" + ctTimes[1]);
+                    jsonData.put("total_time", ctTimes[1]);
+                    trueFlag = true;
+                }
+            }
+            br.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (trueFlag) {
+            return responseHelper.success(jsonData);
+        } else {
+            return responseHelper.error(ErrorCodeEnum.ERROR_FAIL_CONNECT, jsonData);
+        }
+
+    }
 }

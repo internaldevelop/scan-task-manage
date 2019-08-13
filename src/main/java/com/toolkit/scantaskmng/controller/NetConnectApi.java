@@ -34,4 +34,15 @@ public class NetConnectApi {
 //        return netconnectService.ping(ip);
     }
 
+    /**
+     * 测试指定url访问时长
+     * @param url
+     * @return
+     */
+    @RequestMapping(value = "/url-resp", method = RequestMethod.GET)
+    public @ResponseBody Object urlResp(@RequestParam("url") String url) {
+        ResponseBean response = netconnectService.urlResp(url);
+        return response;
+    }
+
 }

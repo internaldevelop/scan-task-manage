@@ -86,6 +86,7 @@ public enum ErrorCodeEnum {
     ERROR_FAIL_EXEC_POLICY(2070, "策略运行失败"),
     ERROR_FAIL_LINUX_CREATE_ACCOUNT(2071, "Linux系统创建用户失败"),
     ERROR_FAIL_LINUX_UPDATE_PASSWD(2072, "Linux系统更新密码失败"),
+    ERROR_FAIL_CONNECT(2073, "连接失败!!!"),
     ;
 
     private Integer code;
