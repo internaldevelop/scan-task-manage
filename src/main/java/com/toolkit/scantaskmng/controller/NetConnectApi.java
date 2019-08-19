@@ -23,10 +23,10 @@ public class NetConnectApi {
 
     /**
      *1.1 网络路径连通性测试
-     * @param ip 系统配置名称
+     * @param ip 连通测试 IP
      * @return payload
      */
-    @RequestMapping(value = "/param", method = RequestMethod.GET)
+    @RequestMapping(value = "/ping", method = RequestMethod.GET)
     public @ResponseBody
     Object netConnect(@RequestParam("ip") String ip) {
         ResponseBean response = netconnectService.ping(ip);
