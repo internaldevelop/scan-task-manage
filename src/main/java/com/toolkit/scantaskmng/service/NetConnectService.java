@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.toolkit.scantaskmng.global.bean.ResponseBean;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
+import com.toolkit.scantaskmng.global.utils.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,12 +30,19 @@ public class NetConnectService {
     public ResponseBean ping(String ip) {
         boolean connect = false;
         Runtime runtime = Runtime.getRuntime();
-        Process process;
+        JSONObject props = SystemUtils.getProps();
+        String sysName = props.getString("os.name");
         try {
 //            String[] args = new String[]{"sh", "-c", "ping " + ip};
 //            BufferedReader output = MyUtils.getExecOutput(args);
 
-            process = runtime.exec("ping " + ip);
+            Process process;
+            if (sysName.indexOf("indows") > -1) {
+                process = runtime.exec("ping " + ip + " -n 3");
+            } else {
+                process = runtime.exec("ping " + ip + " -c 3");
+            }
+
             InputStream is = process.getInputStream();
             InputStreamReader isr = new InputStreamReader(is);
             BufferedReader br = new BufferedReader(isr);
@@ -49,8 +57,8 @@ public class NetConnectService {
             br.close();
 
             if (null != sb && !sb.toString().equals("")) {
-                String logString = "";
-                if (sb.toString().indexOf("TTL") > 0) {
+                String sbStr = sb.toString();
+                if ((sbStr.indexOf("TTL") > -1) || (sbStr.indexOf("ttl") > -1 && sbStr.indexOf("time") > -1)) {
                     // 网络畅通
                     connect = true;
                 } else {
@@ -99,11 +107,13 @@ public class NetConnectService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if (trueFlag) {
-            return responseHelper.success(jsonData);
-        } else {
-            return responseHelper.error(ErrorCodeEnum.ERROR_FAIL_CONNECT, jsonData);
-        }
+
+        return responseHelper.success(jsonData);
+//        if (trueFlag) {
+//
+//        } else {
+//            return responseHelper.error(ErrorCodeEnum.ERROR_FAIL_CONNECT, jsonData);
+//        }
 
     }
 }
