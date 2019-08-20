@@ -11,31 +11,53 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.core.annotation.Order;
+import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ScheduledFuture;
 
 @Component
-@Order(value = 1)
 public class StartAcquireService implements ApplicationRunner {
 
     private static Logger logger = LoggerFactory.getLogger(StartAcquireService.class);
     @Autowired
-    private AssetInfoService assetInfoService;
+    AssetInfoService assetInfoService;
     @Autowired
-    private AssetNetworkMapper assetNetworkMapper;
-    
+    AssetNetworkMapper assetNetworkMapper;
+
+    @Autowired
+    private ThreadPoolTaskScheduler threadPoolTaskScheduler;
+
+    @Bean
+    public ThreadPoolTaskScheduler threadPoolTaskScheduler() {
+        return new ThreadPoolTaskScheduler();
+    }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        AssetPerfDataPo apdPo = new AssetPerfDataPo();
-        List<String> localIPList = SystemUtils.getLocalIPList();
 
-        while (true) {
+        // 创建一个 Runnable ，设置：任务和项目的 UUID
+        MyRunnable runnable = new MyRunnable();
+
+        // 制定任务计划
+        ScheduledFuture<?> future = threadPoolTaskScheduler.schedule(runnable, new CronTrigger("0/30 * * * * *"));
+
+    }
+
+        private class MyRunnable implements Runnable {
+        @Override
+        public void run() {
+            AssetPerfDataPo apdPo = new AssetPerfDataPo();
+            List<String> localIPList = SystemUtils.getLocalIPList();
+
+
             String assetUUids = assetNetworkMapper.getAssetUUid(localIPList);
             Date now = new Date();
             if (!StringUtils.isEmpty(assetUUids)) {
@@ -67,12 +89,11 @@ public class StartAcquireService implements ApplicationRunner {
                 apdPo.setUuid(UUID.randomUUID().toString());
                 for(String assetUUid : assetUUids.split(",")) {
                     apdPo.setAsset_uuid(assetUUid);
-                    java.sql.Timestamp currentTime = MyUtils.getCurrentSystemTimestamp();
+                    Timestamp currentTime = MyUtils.getCurrentSystemTimestamp();
                     apdPo.setCreate_time(currentTime);
                     assetNetworkMapper.addAssetPerfData(apdPo);
                 }
             }
-            Thread.sleep(1000 * 30);
         }
 
     }
