@@ -38,9 +38,9 @@ public class NetConnectService {
 
             Process process;
             if (sysName.indexOf("indows") > -1) {
-                process = runtime.exec("ping " + ip + " -n 3");
+                process = runtime.exec("ping " + ip + " -n 2");
             } else {
-                process = runtime.exec("ping " + ip + " -c 3");
+                process = runtime.exec("ping " + ip + " -c 2");
             }
 
             InputStream is = process.getInputStream();
