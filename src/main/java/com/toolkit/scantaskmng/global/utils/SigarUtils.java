@@ -2,6 +2,7 @@ package com.toolkit.scantaskmng.global.utils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.toolkit.scantaskmng.global.redis.config.RedisCacheConfiguration;
 import org.hyperic.sigar.*;
 
 import java.net.InetAddress;
@@ -208,7 +209,13 @@ public class SigarUtils {
     }
 
     public static boolean needWindowsHigherPrivlidge(String procName) {
-        String winProcNames = "System,Registry,smss,csrss,wininit,services,Memory Compression,SecurityHealthService,SgrmBroker";
+        String winProcNames = "System,Registry,smss,csrss,wininit,services,Memory Compression,SecurityHealthService,SgrmBroker," +
+                "lsass,fontdrvhost,RegSrvc,FlashHelperService,OfficeClickToRun,QQProtect,vmnetdhcp,MsMpEng,IntelCpHeciSvc," +
+                "vmware-hostd,iNodeCmn,iNodeSec,iNode1x,GoogleCrashHandler,jhi_service,LMS,AppVShNotify,armsvc,UIUSrv,VRVEDP_M," +
+                "GoogleCrashHandler64,Vrvsafec,dllhost,360tray,ChsIME,iNode Client,amddvr,amdow,HPCommRecovery,SearchIndexer,SearchProtocolHost," +
+                "taskhostw,iNodeWlan,conhost,unsecapp,SearchFilterHost,winlogon,dwm,atiesrxx,atieclxx,WmiPrvSE,watchclient,360EntClient," +
+                "ZhuDongFangYu,ctfmon,iNodeMon,iNodeImg,IntelCpHDCPSvc,SECOMN64,svchost,vmware-usbarbitrator64,vmnat,vmware-authd,OpswatModule," +
+                "iNodePortal,IAStorDataMgrSvc,GoogleUpdate,igfxCUIService,vrvrf_c,wlanext,spoolsv,CxUIUSvc64,vmware,vmware-unity-helper";
         List<String> winProcNameList = Arrays.asList(winProcNames.split(","));
         return winProcNameList.contains(procName);
     }
@@ -227,10 +234,11 @@ public class SigarUtils {
         }
 
         for (long pid : pids) {
-
             try {
                 // 获取进程的CPU使用信息
                 ProcState procState = getSigar().getProcState(pid);
+//                System.out.println("SigarException:" + procState.getName());
+
                 // Windows 系统中，需要高权限才能访问的进程，跳过
                 if (SystemUtils.isWindows() && needWindowsHigherPrivlidge(procState.getName())) {
                     continue;
@@ -238,7 +246,6 @@ public class SigarUtils {
 //                ProcCpu procCpu = new ProcCpu();
 //                procCpu.gather(getSigar(), pid);
                 ProcCpu procCpu = getSigar().getProcCpu(pid);
-
                 // 使用率占用排序，从高到低
                 int index = 0;
                 for (Iterator iter = usages.iterator(); iter.hasNext(); index++) {
@@ -265,6 +272,7 @@ public class SigarUtils {
                 }
             } catch (SigarException e) {
                 e.printStackTrace();
+//                System.out.println("SigarException:" + procState.getName());
                 continue;
             }
         }
