@@ -215,7 +215,9 @@ public class SigarUtils {
                 "GoogleCrashHandler64,Vrvsafec,dllhost,360tray,ChsIME,iNode Client,amddvr,amdow,HPCommRecovery,SearchIndexer,SearchProtocolHost," +
                 "taskhostw,iNodeWlan,conhost,unsecapp,SearchFilterHost,winlogon,dwm,atiesrxx,atieclxx,WmiPrvSE,watchclient,360EntClient," +
                 "ZhuDongFangYu,ctfmon,iNodeMon,iNodeImg,IntelCpHDCPSvc,SECOMN64,svchost,vmware-usbarbitrator64,vmnat,vmware-authd,OpswatModule," +
-                "iNodePortal,IAStorDataMgrSvc,GoogleUpdate,igfxCUIService,vrvrf_c,wlanext,spoolsv,CxUIUSvc64,vmware,vmware-unity-helper";
+                "iNodePortal,IAStorDataMgrSvc,GoogleUpdate,igfxCUIService,vrvrf_c,wlanext,spoolsv,CxUIUSvc64,vmware,vmware-unity-helper,WUDFHost,"+
+                "TGitCache,ComputerZService,CxUtilSvc,sppsvc,SppExtComObj,MicTray64,vmware-vmx,360leakfixer,audiodg,CxAudioSvc,CxUtilSvc,mysqld,"+
+                "MicTray64,notepad++,ipconfig,slui";
         List<String> winProcNameList = Arrays.asList(winProcNames.split(","));
         return winProcNameList.contains(procName);
     }
